@@ -1,0 +1,8 @@
+{
+  "name": "Tra Cứu Căn Hộ & Mẫu Nội Thất 3D",
+  "description": "Tra cứu kích thước chi tiết căn hộ, sơ đồ mặt bằng kỹ thuật, mẫu nội thất 3D và video thực tế dành cho cư dân chung cư.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
