@@ -27,6 +27,7 @@ import { LeadsTab } from './admin/LeadsTab';
 import { SettingsTab } from './admin/SettingsTab';
 import { ApartmentEditorModal } from './admin/ApartmentEditorModal';
 import { ProjectEditorModal } from './admin/ProjectEditorModal';
+import { DialogHost, useDialog } from './admin/Modal';
 
 interface AdminPortalProps {
   isOpen: boolean;
@@ -57,20 +58,57 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onSaveSettings,
   onRefreshAllData,
 }) => {
-  const [activeTab, setActiveTab] = useState<'catalog' | 'leads' | 'settings'>('catalog');
+  if (!isOpen) return null;
 
-  // Apartment editor state
+  return <AdminPortalContent
+    isOpen={isOpen}
+    onClose={onClose}
+    onLogout={onLogout}
+    projects={projects}
+    apartments={apartments}
+    leads={leads}
+    settings={settings}
+    onSaveProjects={onSaveProjects}
+    onSaveApartments={onSaveApartments}
+    onSaveLeads={onSaveLeads}
+    onSaveSettings={onSaveSettings}
+    onRefreshAllData={onRefreshAllData}
+  />;
+};
+
+/**
+ * AdminPortalContent - phần thân, có thể dùng hook useDialog (cần nằm trong <DialogHost>).
+ */
+const AdminPortalContent: React.FC<AdminPortalProps> = ({
+  isOpen,
+  onClose,
+  onLogout,
+  projects,
+  apartments,
+  leads,
+  settings,
+  onSaveProjects,
+  onSaveApartments,
+  onSaveLeads,
+  onSaveSettings,
+  onRefreshAllData,
+}) => {
+  const dialog = useDialog();
+  const [activeTab, setActiveTab] = useState<'catalog' | 'leads' | 'settings'>('catalog');
   const [selectedApartmentForEdit, setSelectedApartmentForEdit] = useState<ApartmentUnit | null>(null);
   const [isEditingApartment, setIsEditingApartment] = useState(false);
-
-  // Project editor state
   const [isEditingProject, setIsEditingProject] = useState(false);
   const [selectedProjectForEdit, setSelectedProjectForEdit] = useState<Project | null>(null);
 
   if (!isOpen) return null;
 
-  const handleLogoutAdmin = () => {
-    if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi khu vực Quản Trị?')) {
+  const handleLogoutAdmin = async () => {
+    const ok = await dialog.confirm(
+      'Đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất khỏi khu vực Quản Trị?',
+      { tone: 'warning', confirmText: 'Đăng xuất' }
+    );
+    if (ok) {
       clearAdminSession();
       if (onLogout) onLogout();
       else onClose();
@@ -78,6 +116,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   };
 
   return (
+    <DialogHost>
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fade-in">
       <div className="bg-white rounded-3xl max-w-7xl w-full max-h-[96vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden relative">
         {/* Admin Header */}
@@ -242,11 +281,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 setSelectedApartmentForEdit(newApt);
                 setIsEditingApartment(true);
               }}
+              dialog={dialog}
             />
           )}
 
           {activeTab === 'leads' && (
-            <LeadsTab leads={leads} settings={settings} onSaveLeads={onSaveLeads} />
+            <LeadsTab leads={leads} settings={settings} onSaveLeads={onSaveLeads} dialog={dialog} />
           )}
 
           {activeTab === 'settings' && (
@@ -257,6 +297,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               leads={leads}
               onSaveSettings={onSaveSettings}
               onRefreshAllData={onRefreshAllData}
+              dialog={dialog}
             />
           )}
         </div>
@@ -303,5 +344,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         />
       )}
     </div>
+    </DialogHost>
   );
 };

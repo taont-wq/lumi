@@ -1,18 +1,27 @@
 import { ApartmentUnit, AppSettings, Project } from '../types';
 
 export const INITIAL_SETTINGS: AppSettings = {
-  brandName: 'Nội Thất Căn Hộ & Mặt Bằng Kỹ Thuật',
-  slogan: 'Hệ thống tra cứu kích thước chi tiết, sơ đồ mặt bằng và mẫu nội thất 3D cho cư dân',
-  hotline: '0988 123 456',
-  zaloNumber: '0988123456',
-  zaloLink: 'https://zalo.me/0988123456',
-  address: 'Tòa Landmark 81, Vinhomes Central Park, TP. Hồ Chí Minh & Ocean Park, Gia Lâm, Hà Nội',
-  email: 'hotro.noithatcanho@gmail.com',
+  brandName: 'Lumi Design',
+  slogan:
+    'Tra cứu kích thước chi tiết căn hộ, sơ đồ mặt bằng & mẫu nội thất 3D - noithatlumi.vn',
+  hotline: '058 929 4444',
+  hotline2: '083 555 7878',
+  zaloNumber: '0589294444',
+  zaloLink: 'https://zalo.me/0589294444',
+  address: 'Showroom: Shop chân đế Zurich 1, Vinhomes Ocean Park',
+  addressShowroom: 'Shop chân đế Zurich 1, Vinhomes Ocean Park',
+  addressVpgd: [
+    'ZR1 0311, tòa ZR1, Vinhomes Ocean Park',
+    'Tòa SA5, The Sakura, Vinhomes Smart City',
+    'Tòa SF3, Skyforest, Ecopark, Hưng Yên',
+  ],
+  email: 'noithatlumidesign@gmail.com',
+  facebookUrl: 'https://www.facebook.com/noithatlumidesign',
   googleSheetWebhookUrl: '',
   autoSyncGoogleSheet: true,
   adminPasswordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // SHA-256 for 'admin123'
   heroHeadline: 'Tra Cứu Kích Thước Chi Tiết Căn Hộ & Mẫu Nội Thất 3D',
-  heroSubheadline: 'Dành riêng cho cư dân đã mua căn hộ: Tải sơ đồ mặt bằng kỹ thuật, xem kích thước từng phòng, khám phá hơn 500+ mẫu 3D thực tế và video bàn giao.',
+  heroSubheadline: 'Công cụ tra cứu kỹ thuật & nội thất 3D chính thức từ Lumi Design (noithatlumi.vn): Tải sơ đồ mặt bằng, đo đạc kích thước từng phòng, xem 500+ mẫu nội thất 3D và video bàn giao thực tế từng căn.',
 };
 
 export const INITIAL_PROJECTS: Project[] = [

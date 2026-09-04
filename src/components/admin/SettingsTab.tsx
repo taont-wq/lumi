@@ -23,6 +23,7 @@ import { verifyPassword } from '../../services/authService';
 import { updateAdminPassword } from '../../services/storageService';
 import { exportSystemBackup, importSystemBackup, resetAllData } from '../../services/storageService';
 import { GOOGLE_APPS_SCRIPT_CODE } from './googleAppsScript';
+import { DialogApi } from '../admin/Modal';
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -31,6 +32,7 @@ interface SettingsTabProps {
   leads: LeadRecord[];
   onSaveSettings: (settings: AppSettings) => void;
   onRefreshAllData?: () => void;
+  dialog?: DialogApi;
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({
@@ -40,7 +42,15 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   leads,
   onSaveSettings,
   onRefreshAllData,
+  dialog,
 }) => {
+  // Fallback nếu SettingsTab được dùng ngoài <DialogHost> (vd: trong AdminPortal cũ)
+  const dlg: DialogApi = dialog || {
+    alert: async (t, m) => { window.alert(m ? `${t}\n\n${m}` : t); },
+    confirm: async (t, m) => { return window.confirm(m ? `${t}\n\n${m}` : t); },
+    info: async () => {},
+  };
+
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   const [webhookTestStatus, setWebhookTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>(
     'idle'
@@ -66,7 +76,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const handleTestWebhook = async () => {
     if (!localSettings.googleSheetWebhookUrl) {
-      alert('Vui lòng nhập Webhook URL của Google Apps Script trước!');
+      await dlg.alert(
+        'Thiếu cấu hình',
+        'Vui lòng nhập Webhook URL của Google Apps Script trước!',
+        'warning'
+      );
       return;
     }
     setWebhookTestStatus('testing');
@@ -501,7 +515,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         <div className="pt-2 flex items-center justify-between">
           <button
             onClick={async () => {
-              if (confirm('Bạn có muốn khởi tạo lại dữ liệu gốc của hệ thống không?')) {
+              const ok = await dlg.confirm(
+                'Khởi tạo lại dữ liệu',
+                'Bạn có chắc chắn muốn khởi tạo lại dữ liệu gốc của hệ thống? Tất cả dự án, căn hộ và khách hàng sẽ bị xoá và thay bằng dữ liệu mặc định. Hành động này KHÔNG thể hoàn tác.',
+                { tone: 'error', confirmText: 'Khởi tạo lại' }
+              );
+              if (ok) {
                 await resetAllData();
                 window.location.reload();
               }
@@ -512,9 +531,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </button>
 
           <button
-            onClick={() => {
+            onClick={async () => {
               onSaveSettings(localSettings);
-              alert('Đã lưu cài đặt thành công!');
+              await dlg.alert('Thành công', 'Đã lưu cài đặt thành công!', 'success');
             }}
             className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center space-x-1.5"
           >

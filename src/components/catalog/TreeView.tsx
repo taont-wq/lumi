@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { ApartmentUnit, Project } from '../../types';
 import type { CatalogState } from './useCatalogState';
+import { DialogApi } from '../admin/Modal';
 
 interface TreeViewProps {
   projects: Project[];
@@ -31,6 +32,7 @@ interface TreeViewProps {
   state: CatalogState;
   onOpenApartmentEditor: (apt: ApartmentUnit) => void;
   onOpenProjectEditor: (project: Project) => void;
+  dialog?: DialogApi;
 }
 
 export const TreeView: React.FC<TreeViewProps> = ({
@@ -39,8 +41,14 @@ export const TreeView: React.FC<TreeViewProps> = ({
   state,
   onOpenApartmentEditor,
   onOpenProjectEditor,
+  dialog,
 }) => {
   const s = state;
+  const dlg: DialogApi = dialog || {
+    alert: async (t, m) => { window.alert(m ? `${t}\n\n${m}` : t); },
+    confirm: async (t, m) => { return window.confirm(m ? `${t}\n\n${m}` : t); },
+    info: async () => {},
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
@@ -85,8 +93,9 @@ export const TreeView: React.FC<TreeViewProps> = ({
             <button
               onClick={() => s.setSelectedNode({ type: 'root' })}
               className="text-blue-600 hover:underline font-bold"
+              title="Quay lại xem toàn bộ cây dự án (root node)"
             >
-              Xem gốc
+              ↩ Về Root
             </button>
           </div>
         </div>
@@ -571,8 +580,14 @@ export const TreeView: React.FC<TreeViewProps> = ({
                   <span>Chuyển Dự Án / Tòa / Trục</span>
                 </button>
                 <button
-                  onClick={() => {
-                    if (confirm(`Bạn có chắc muốn xóa ${s.selectedUnitIds.size} căn hộ đã chọn?`)) {
+                  onClick={async () => {
+                    const count = s.selectedUnitIds.size;
+                    const ok = await dlg.confirm(
+                      `Xóa ${count} căn hộ`,
+                      `Bạn có chắc chắn muốn xóa ${count} căn hộ đã chọn? Hành động này không thể hoàn tác.`,
+                      { tone: 'error', confirmText: `Xóa ${count} căn` }
+                    );
+                    if (ok) {
                       // handleDeleteUnit đã gọi onSaveApartments nội bộ
                       const ids = Array.from(s.selectedUnitIds);
                       ids.forEach((id) => {

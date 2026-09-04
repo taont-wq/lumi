@@ -18,14 +18,23 @@ import {
   exportLeadsToCsv,
   sendLeadToGoogleSheet,
 } from '../../services/storageService';
+import { DialogApi } from '../admin/Modal';
 
 interface LeadsTabProps {
   leads: LeadRecord[];
   settings: AppSettings;
   onSaveLeads: (leads: LeadRecord[]) => void;
+  dialog?: DialogApi;
 }
 
-export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, settings, onSaveLeads }) => {
+export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, settings, onSaveLeads, dialog }) => {
+  // Fallback nếu LeadsTab được dùng ngoài <DialogHost> (vd: trong AdminPortal cũ)
+  const dlg: DialogApi = dialog || {
+    alert: async (t, m) => { window.alert(m ? `${t}\n\n${m}` : t); },
+    confirm: async (t, m) => { return window.confirm(m ? `${t}\n\n${m}` : t); },
+    info: async () => {},
+  };
+
   const [leadSearch, setLeadSearch] = useState('');
   const [leadStatusFilter, setLeadStatusFilter] = useState<string>('all');
   const [isSyncingAll, setIsSyncingAll] = useState(false);
@@ -45,15 +54,24 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, settings, onSaveLeads
     onSaveLeads(leads.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)));
   };
 
-  const handleDeleteLead = (leadId: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa thông tin khách hàng này?')) {
+  const handleDeleteLead = async (leadId: string) => {
+    const ok = await dlg.confirm(
+      'Xóa khách hàng',
+      'Bạn có chắc chắn muốn xóa thông tin khách hàng này? Hành động này không thể hoàn tác.',
+      { tone: 'warning', confirmText: 'Xóa' }
+    );
+    if (ok) {
       onSaveLeads(leads.filter((l) => l.id !== leadId));
     }
   };
 
   const handleSyncLeadNow = async (lead: LeadRecord) => {
     if (!settings.googleSheetWebhookUrl) {
-      alert('Vui lòng vào tab Cấu Hình & Google Sheet để dán URL Webhook trước!');
+      await dlg.alert(
+        'Thiếu cấu hình Webhook',
+        'Vui lòng vào tab Cấu Hình & Google Sheet để dán URL Webhook trước!',
+        'warning'
+      );
       return;
     }
     const res = await sendLeadToGoogleSheet(lead, settings.googleSheetWebhookUrl);
@@ -61,15 +79,23 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, settings, onSaveLeads
       onSaveLeads(
         leads.map((l) => (l.id === lead.id ? { ...l, syncedToGoogleSheet: true } : l))
       );
-      alert('Đã gửi thông tin khách vào Google Sheet thành công!');
+      await dlg.alert('Thành công', 'Đã gửi thông tin khách vào Google Sheet thành công!', 'success');
     } else {
-      alert('Không thể gửi đến Webhook Google Sheet. Vui lòng kiểm tra lại URL.');
+      await dlg.alert(
+        'Gửi thất bại',
+        'Không thể gửi đến Webhook Google Sheet. Vui lòng kiểm tra lại URL.',
+        'error'
+      );
     }
   };
 
   const handleSyncAllLeads = async () => {
     if (!settings.googleSheetWebhookUrl) {
-      alert('Vui lòng cấu hình Webhook Google Sheet trước!');
+      await dlg.alert(
+        'Thiếu cấu hình Webhook',
+        'Vui lòng cấu hình Webhook Google Sheet trước!',
+        'warning'
+      );
       return;
     }
     setIsSyncingAll(true);

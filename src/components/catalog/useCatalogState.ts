@@ -14,6 +14,7 @@ import {
   SelectedNodeType,
   ViewMode,
 } from './types';
+import { DialogApi } from '../admin/Modal';
 
 export function useCatalogState(
   projects: Project[],
@@ -22,7 +23,8 @@ export function useCatalogState(
   onSaveApartments: (apartments: ApartmentUnit[]) => void,
   onOpenApartmentEditor: (apt: ApartmentUnit) => void,
   onAddNewApartmentWithDefaults?: (defaults: Partial<ApartmentUnit>) => void,
-  showToast: (text: string, type?: 'success' | 'error') => void = () => {}
+  showToast: (text: string, type?: 'success' | 'error') => void = () => {},
+  dialog?: DialogApi
 ) {
   // View mode: tree hoặc matrix
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
@@ -61,6 +63,13 @@ export function useCatalogState(
   const [dialogTargetProject, setDialogTargetProject] = useState('');
   const [dialogTargetTower, setDialogTargetTower] = useState('');
   const [dialogTargetAxis, setDialogTargetAxis] = useState('');
+
+  // Fallback dialog khi hook được dùng ngoài <DialogHost>
+  const dlg: DialogApi = dialog || {
+    alert: async (t, m) => { window.alert(m ? `${t}\n\n${m}` : t); },
+    confirm: async (t, m) => { return window.confirm(m ? `${t}\n\n${m}` : t); },
+    info: async () => {},
+  };
 
   // ========== TREE BUILDING ==========
   const treeData = useMemo(() => {
@@ -376,9 +385,14 @@ export function useCatalogState(
   );
 
   const handleDeleteUnit = useCallback(
-    (aptId: string, unitCode: string, e?: React.MouseEvent) => {
+    async (aptId: string, unitCode: string, e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
-      if (confirm(`Bạn có chắc chắn muốn xóa căn hộ "${unitCode}" khỏi hệ thống?`)) {
+      const ok = await dlg.confirm(
+        `Xóa căn hộ ${unitCode}`,
+        `Bạn có chắc chắn muốn xóa căn hộ "${unitCode}" khỏi hệ thống? Hành động này không thể hoàn tác.`,
+        { tone: 'warning', confirmText: 'Xóa căn hộ' }
+      );
+      if (ok) {
         const updated = apartments.filter((a) => a.id !== aptId);
         onSaveApartments(updated);
         setSelectedUnitIds((prev) => {
@@ -392,39 +406,46 @@ export function useCatalogState(
         showToast(`Đã xóa căn hộ "${unitCode}".`);
       }
     },
-    [apartments, onSaveApartments, selectedNode, showToast]
+    [apartments, onSaveApartments, selectedNode, showToast, dlg]
   );
 
   const handleDeleteProject = useCallback(
-    (proj: Project, e?: React.MouseEvent) => {
+    async (proj: Project, e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
       const count = apartments.filter((a) => a.projectId === proj.id).length;
-      const confirmMsg =
+      const message =
         count > 0
           ? `Dự án "${proj.name}" đang có ${count} căn hộ. Bạn có chắc muốn xóa dự án và TOÀN BỘ ${count} căn hộ thuộc dự án này không?`
           : `Bạn có chắc muốn xóa dự án "${proj.name}"?`;
-      if (confirm(confirmMsg)) {
+      const ok = await dlg.confirm(
+        `Xóa dự án ${proj.name}`,
+        message,
+        { tone: 'error', confirmText: 'Xóa dự án' }
+      );
+      if (ok) {
         onSaveProjects(projects.filter((p) => p.id !== proj.id));
         onSaveApartments(apartments.filter((a) => a.projectId !== proj.id));
         setSelectedNode({ type: 'root' });
         showToast(`Đã xóa dự án "${proj.name}".`);
       }
     },
-    [apartments, onSaveApartments, onSaveProjects, projects, showToast]
+    [apartments, onSaveApartments, onSaveProjects, projects, showToast, dlg]
   );
 
   const handleDeleteTower = useCallback(
-    (projectId: string, towerName: string, e?: React.MouseEvent) => {
+    async (projectId: string, towerName: string, e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
       const towerApts = apartments.filter((a) => a.projectId === projectId && a.tower === towerName);
       const proj = projects.find((p) => p.id === projectId);
-      if (
-        confirm(
-          `Bạn có chắc chắn muốn xóa Tòa "${towerName}"? ${
-            towerApts.length > 0 ? `Toàn bộ ${towerApts.length} căn hộ thuộc tòa này cũng sẽ được xóa bỏ.` : ''
-          }`
-        )
-      ) {
+      const message = `Bạn có chắc chắn muốn xóa Tòa "${towerName}"? ${
+        towerApts.length > 0 ? `Toàn bộ ${towerApts.length} căn hộ thuộc tòa này cũng sẽ được xóa bỏ.` : ''
+      }`;
+      const ok = await dlg.confirm(
+        `Xóa Tòa ${towerName}`,
+        message,
+        { tone: 'error', confirmText: 'Xóa tòa' }
+      );
+      if (ok) {
         if (proj) {
           onSaveProjects(
             projects.map((p) =>
@@ -439,22 +460,24 @@ export function useCatalogState(
         showToast(`Đã xóa Tòa "${towerName}".`);
       }
     },
-    [apartments, onSaveApartments, onSaveProjects, projects, showToast]
+    [apartments, onSaveApartments, onSaveProjects, projects, showToast, dlg]
   );
 
   const handleDeleteAxis = useCallback(
-    (projectId: string, towerName: string, axisNumber: string, e?: React.MouseEvent) => {
+    async (projectId: string, towerName: string, axisNumber: string, e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
       const axisApts = apartments.filter(
         (a) => a.projectId === projectId && a.tower === towerName && a.axisNumber === axisNumber
       );
-      if (
-        confirm(
-          `Bạn có chắc muốn xóa trục "${axisNumber}"? ${
-            axisApts.length > 0 ? `Toàn bộ ${axisApts.length} căn hộ thuộc trục này cũng sẽ bị xóa.` : ''
-          }`
-        )
-      ) {
+      const message = `Bạn có chắc muốn xóa trục "${axisNumber}"? ${
+        axisApts.length > 0 ? `Toàn bộ ${axisApts.length} căn hộ thuộc trục này cũng sẽ bị xóa.` : ''
+      }`;
+      const ok = await dlg.confirm(
+        `Xóa trục ${axisNumber}`,
+        message,
+        { tone: 'warning', confirmText: 'Xóa trục' }
+      );
+      if (ok) {
         onSaveApartments(
           apartments.filter(
             (a) => !(a.projectId === projectId && a.tower === towerName && a.axisNumber === axisNumber)
@@ -464,7 +487,7 @@ export function useCatalogState(
         showToast(`Đã xóa trục "${axisNumber}".`);
       }
     },
-    [apartments, onSaveApartments, showToast]
+    [apartments, onSaveApartments, showToast, dlg]
   );
 
   // ========== HANDLERS: QUICK ACTION DIALOG ==========

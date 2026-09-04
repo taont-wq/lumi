@@ -108,6 +108,7 @@ export interface LeadRecord {
   action: 'download_blueprint' | 'download_catalogue' | 'request_quotation' | 'book_consult';
   actionName?: string;
   note?: string;
+  source?: string;
   createdAt: string;
   status: 'new' | 'contacted' | 'consulting' | 'completed';
   syncedToGoogleSheet?: boolean;
@@ -117,10 +118,14 @@ export interface AppSettings {
   brandName: string;
   slogan: string;
   hotline: string;
+  hotline2?: string;
   zaloNumber: string;
   zaloLink: string;
   address: string;
+  addressShowroom?: string;
+  addressVpgd?: string[];
   email: string;
+  facebookUrl?: string;
   googleSheetWebhookUrl: string;
   autoSyncGoogleSheet: boolean;
   adminPasswordHash?: string;

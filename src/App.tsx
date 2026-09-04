@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useNavigate,
+} from 'react-router-dom';
+import {
   ApartmentUnit,
   ApartmentUnitType,
   AppSettings,
@@ -27,35 +33,38 @@ import { HeroSearch } from './components/HeroSearch';
 import { ApartmentCard } from './components/ApartmentCard';
 import { ApartmentDetailModal } from './components/ApartmentDetailModal';
 import { LeadCaptureModal } from './components/LeadCaptureModal';
-import { AdminPortal } from './components/AdminPortal';
-import { AdminLoginModal } from './components/AdminLoginModal';
 import { ConsultationSection } from './components/ConsultationSection';
 import { Footer } from './components/Footer';
 import { StickyMobileCTA } from './components/StickyMobileCTA';
-import {
-  Building2,
-  SlidersHorizontal,
-  Sparkles,
-  ArrowUpDown,
-  SearchX,
-  FileCheck,
-} from 'lucide-react';
+import { Analytics } from './components/Analytics';
 
+import { RouteGuard } from './components/RouteGuard';
+import { AdminLoginPage } from './pages/AdminLoginPage';
+import { AdminDashboardPage, AdminDashboardPageWithDialog } from './pages/AdminDashboardPage';
+import { AdminCatalogPage } from './pages/AdminCatalogPage';
+import { AdminLeadsPage } from './pages/AdminLeadsPage';
+import { AdminSettingsPage } from './pages/AdminSettingsPage';
+
+import { ArrowUpDown, SearchX } from 'lucide-react';
+
+/**
+ * Root component - quản lý toàn bộ state + auth + data
+ *
+ * Render thành 2 phần:
+ *   1. <BrowserRouter> + <Routes>:
+ *      - "/"            → <HomePage> (công khai)
+ *      - "/admin/login" → <AdminLoginPage>
+ *      - "/admin/*"     → <RouteGuard> + <AdminDashboardPage> (nested)
+ */
 export default function App() {
-  // Global App States
+  // ===== Data states =====
   const [projects, setProjects] = useState<Project[]>([]);
   const [apartments, setApartments] = useState<ApartmentUnit[]>([]);
   const [leads, setLeads] = useState<LeadRecord[]>([]);
-  // Start with INITIAL_SETTINGS so the app renders immediately, then refresh from storage
   const [settings, setSettings] = useState<AppSettings>(INITIAL_SETTINGS_FALLBACK);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  // Admin Auth States
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
-  const [isAdminPortalOpen, setIsAdminPortalOpen] = useState<boolean>(false);
-  const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState<boolean>(false);
-
-  // Search & Filter States
+  // ===== Search/Filter states =====
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [selectedTower, setSelectedTower] = useState<string>('all');
   const [selectedAxis, setSelectedAxis] = useState<string>('all');
@@ -63,9 +72,10 @@ export default function App() {
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [sortBy, setSortBy] = useState<'default' | 'area_asc' | 'area_desc'>('default');
 
-  // Modals
+  // ===== Modal states =====
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedApartmentForDetail, setSelectedApartmentForDetail] = useState<ApartmentUnit | null>(null);
+  const [selectedApartmentForDetail, setSelectedApartmentForDetail] =
+    useState<ApartmentUnit | null>(null);
   const [detailModalInitialTab, setDetailModalInitialTab] = useState<string>('dimensions');
 
   const [isLeadCaptureOpen, setIsLeadCaptureOpen] = useState(false);
@@ -74,11 +84,11 @@ export default function App() {
   >('download_blueprint');
   const [targetApartmentForLead, setTargetApartmentForLead] = useState<ApartmentUnit | null>(null);
 
-  // Ref for scrolling
+  // ===== Refs =====
   const searchSectionRef = useRef<HTMLDivElement>(null);
   const resultsSectionRef = useRef<HTMLDivElement>(null);
 
-  // Load Initial Data & Check Auth Session
+  // ===== Load data =====
   const refreshAllDataFromStorage = async () => {
     try {
       const [p, a, l, s] = await Promise.all([
@@ -100,57 +110,30 @@ export default function App() {
 
   useEffect(() => {
     refreshAllDataFromStorage();
-    setIsAdminAuthenticated(isAdminSessionValid());
-
-    // Listen for #admin URL hash or keyboard shortcut Ctrl+Shift+A
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
-        e.preventDefault();
-        handleTriggerAdminAccess();
-      }
-    };
-
-    const handleHashChange = () => {
-      if (window.location.hash === '#admin') {
-        handleTriggerAdminAccess();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('hashchange', handleHashChange);
-    if (window.location.hash === '#admin') {
-      handleTriggerAdminAccess();
-    }
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('hashchange', handleHashChange);
-    };
   }, []);
 
-  const handleTriggerAdminAccess = () => {
-    if (isAdminSessionValid()) {
-      setIsAdminAuthenticated(true);
-      setIsAdminPortalOpen(true);
-    } else {
-      setIsAdminAuthenticated(false);
-      setIsAdminLoginModalOpen(true);
-    }
+  // ===== Save handlers =====
+  const handleSaveProjects = (newProjects: Project[]) => {
+    setProjects(newProjects);
+    saveStoredProjects(newProjects).catch((e) => console.error('saveStoredProjects failed:', e));
+  };
+  const handleSaveApartments = (newApartments: ApartmentUnit[]) => {
+    setApartments(newApartments);
+    saveStoredApartments(newApartments).catch((e) => console.error('saveStoredApartments failed:', e));
+  };
+  const handleSaveLeads = (newLeads: LeadRecord[]) => {
+    setLeads(newLeads);
+    saveStoredLeads(newLeads).catch((e) => console.error('saveStoredLeads failed:', e));
+  };
+  const handleSaveSettings = (newSettings: AppSettings) => {
+    setSettings(newSettings);
+    saveStoredSettings(newSettings).catch((e) => console.error('saveStoredSettings failed:', e));
+  };
+  const handleRefreshLeadsFromStorage = () => {
+    getStoredLeads().then((l) => setLeads(l)).catch((e) => console.error('refresh leads failed:', e));
   };
 
-  const handleAdminLoginSuccess = () => {
-    setIsAdminAuthenticated(true);
-    setIsAdminLoginModalOpen(false);
-    setIsAdminPortalOpen(true);
-  };
-
-  const handleAdminLogout = () => {
-    clearAdminSession();
-    setIsAdminAuthenticated(false);
-    setIsAdminPortalOpen(false);
-  };
-
-  // Dynamically compute available towers (Tòa tháp) based on selected project
+  // ===== Available towers/axes =====
   const availableTowers = useMemo<string[]>(() => {
     if (selectedProjectId === 'all') {
       const list: string[] = [];
@@ -167,7 +150,6 @@ export default function App() {
       const unique = Array.from(new Set(list));
       return unique.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
     }
-
     const targetProject = projects.find((p) => p.id === selectedProjectId);
     const list: string[] = [];
     if (targetProject?.towers && Array.isArray(targetProject.towers)) {
@@ -180,20 +162,14 @@ export default function App() {
       .forEach((a) => {
         if (a.tower && a.tower.trim()) list.push(a.tower.trim());
       });
-
     const unique = Array.from(new Set(list));
     return unique.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
   }, [apartments, projects, selectedProjectId]);
 
-  // Dynamically compute available axes (Trục căn) based on selected project and tower
   const availableAxes = useMemo<string[]>(() => {
     let pool = apartments;
-    if (selectedProjectId !== 'all') {
-      pool = pool.filter((a) => a.projectId === selectedProjectId);
-    }
-    if (selectedTower !== 'all') {
-      pool = pool.filter((a) => a.tower === selectedTower);
-    }
+    if (selectedProjectId !== 'all') pool = pool.filter((a) => a.projectId === selectedProjectId);
+    if (selectedTower !== 'all') pool = pool.filter((a) => a.tower === selectedTower);
     const rawList: string[] = pool
       .map((a) => a.axisNumber)
       .filter((ax): ax is string => typeof ax === 'string' && ax.trim().length > 0);
@@ -201,26 +177,14 @@ export default function App() {
     return unique.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
   }, [apartments, selectedProjectId, selectedTower]);
 
-  // Filter Logic
+  // ===== Filter + Sort =====
   const filteredApartments = apartments.filter((apt) => {
-    // 1. Project filter
-    const matchProject =
-      selectedProjectId === 'all' || apt.projectId === selectedProjectId;
-
-    // 2. Tower filter (Tòa tháp)
-    const matchTower =
-      selectedTower === 'all' || apt.tower === selectedTower;
-
-    // 3. Axis filter (Trục Căn Chung Cư)
+    const matchProject = selectedProjectId === 'all' || apt.projectId === selectedProjectId;
+    const matchTower = selectedTower === 'all' || apt.tower === selectedTower;
     const matchAxis =
       selectedAxis === 'all' ||
       (apt.axisNumber && apt.axisNumber.trim().toLowerCase() === selectedAxis.trim().toLowerCase());
-
-    // 4. Unit type filter (Dạng Căn Điển Hình)
-    const matchUnitType =
-      selectedUnitType === 'all' || apt.unitType === selectedUnitType;
-
-    // 5. Keyword search (unitCode, tower, axisNumber, unitTypeName, projectName, etc.)
+    const matchUnitType = selectedUnitType === 'all' || apt.unitType === selectedUnitType;
     const kw = searchKeyword.trim().toLowerCase();
     const matchKeyword =
       !kw ||
@@ -231,30 +195,26 @@ export default function App() {
       apt.unitTypeName.toLowerCase().includes(kw) ||
       (apt.direction && apt.direction.toLowerCase().includes(kw)) ||
       (apt.highlights && apt.highlights.some((h) => h.toLowerCase().includes(kw)));
-
     return matchProject && matchTower && matchAxis && matchUnitType && matchKeyword;
   });
 
-  // Sort Logic
   const sortedApartments = [...filteredApartments].sort((a, b) => {
     if (sortBy === 'area_asc') return a.netArea - b.netArea;
     if (sortBy === 'area_desc') return b.netArea - a.netArea;
     return 0;
   });
 
-  // Action handlers
+  // ===== Action handlers =====
   const handleScrollToSearch = () => {
     if (searchSectionRef.current) {
       searchSectionRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
-
   const handleSearchSubmit = () => {
     if (resultsSectionRef.current) {
       resultsSectionRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
-
   const handleResetFilter = () => {
     setSelectedProjectId('all');
     setSelectedTower('all');
@@ -262,13 +222,11 @@ export default function App() {
     setSelectedUnitType('all');
     setSearchKeyword('');
   };
-
   const handleOpenDetailModal = (apartment: ApartmentUnit, defaultTab = 'dimensions') => {
     setSelectedApartmentForDetail(apartment);
     setDetailModalInitialTab(defaultTab);
     setIsDetailModalOpen(true);
   };
-
   const handleOpenDownloadModal = (
     apartment: ApartmentUnit,
     actionType: 'download_blueprint' | 'download_catalogue' | 'request_quotation' | 'book_consult'
@@ -277,52 +235,238 @@ export default function App() {
     setLeadCaptureAction(actionType);
     setIsLeadCaptureOpen(true);
   };
-
   const handleOpenConsultDirect = () => {
     setTargetApartmentForLead(null);
     setLeadCaptureAction('book_consult');
     setIsLeadCaptureOpen(true);
   };
 
-  // State Persistence syncs
-  const handleSaveProjects = (newProjects: Project[]) => {
-    setProjects(newProjects);
-    saveStoredProjects(newProjects).catch((e) => console.error('saveStoredProjects failed:', e));
-  };
+  // ===== Loading screen =====
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-sm text-slate-600">Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleSaveApartments = (newApartments: ApartmentUnit[]) => {
-    setApartments(newApartments);
-    saveStoredApartments(newApartments).catch((e) => console.error('saveStoredApartments failed:', e));
-  };
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Trang chủ công khai */}
+        <Route
+          path="/"
+          element={
+            <HomePage
+              projects={projects}
+              apartments={apartments}
+              leads={leads}
+              settings={settings}
+              sortedApartments={sortedApartments}
+              selectedProjectId={selectedProjectId}
+              selectedTower={selectedTower}
+              selectedAxis={selectedAxis}
+              selectedUnitType={selectedUnitType}
+              searchKeyword={searchKeyword}
+              sortBy={sortBy}
+              availableTowers={availableTowers}
+              availableAxes={availableAxes}
+              searchSectionRef={searchSectionRef}
+              resultsSectionRef={resultsSectionRef}
+              isDetailModalOpen={isDetailModalOpen}
+              selectedApartmentForDetail={selectedApartmentForDetail}
+              detailModalInitialTab={detailModalInitialTab}
+              isLeadCaptureOpen={isLeadCaptureOpen}
+              leadCaptureAction={leadCaptureAction}
+              targetApartmentForLead={targetApartmentForLead}
+              onProjectChange={(projId) => {
+                setSelectedProjectId(projId);
+                setSelectedTower('all');
+                setSelectedAxis('all');
+              }}
+              onTowerChange={(tower) => {
+                setSelectedTower(tower);
+                setSelectedAxis('all');
+              }}
+              onAxisChange={setSelectedAxis}
+              onUnitTypeChange={setSelectedUnitType}
+              onKeywordChange={setSearchKeyword}
+              onSortChange={setSortBy}
+              onSearchSubmit={handleSearchSubmit}
+              onResetFilter={handleResetFilter}
+              onScrollToSearch={handleScrollToSearch}
+              onOpenDetailModal={handleOpenDetailModal}
+              onOpenDownloadModal={handleOpenDownloadModal}
+              onOpenConsultDirect={handleOpenConsultDirect}
+              onCloseDetailModal={() => {
+                setIsDetailModalOpen(false);
+                setSelectedApartmentForDetail(null);
+              }}
+              onCloseLeadCapture={() => {
+                setIsLeadCaptureOpen(false);
+                setTargetApartmentForLead(null);
+              }}
+              onLeadSubmitted={handleRefreshLeadsFromStorage}
+            />
+          }
+        />
 
-  const handleSaveLeads = (newLeads: LeadRecord[]) => {
-    setLeads(newLeads);
-    saveStoredLeads(newLeads).catch((e) => console.error('saveStoredLeads failed:', e));
-  };
+        {/* Admin login */}
+        <Route path="/admin/login" element={<AdminLoginPage />} />
 
-  const handleSaveSettings = (newSettings: AppSettings) => {
-    setSettings(newSettings);
-    saveStoredSettings(newSettings).catch((e) => console.error('saveStoredSettings failed:', e));
-  };
+        {/* Admin dashboard (nested routes) - protected */}
+        <Route
+          path="/admin"
+          element={
+            <RouteGuard>
+              <AdminDashboardPageWithDialog
+                projects={projects}
+                apartments={apartments}
+                leads={leads}
+                settings={settings}
+                onSaveProjects={handleSaveProjects}
+                onSaveApartments={handleSaveApartments}
+                onSaveLeads={handleSaveLeads}
+                onSaveSettings={handleSaveSettings}
+                onRefreshAllData={refreshAllDataFromStorage}
+              />
+            </RouteGuard>
+          }
+        >
+          <Route index element={<AdminCatalogPage />} />
+          <Route path="catalog" element={<AdminCatalogPage />} />
+          <Route path="leads" element={<AdminLeadsPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
+        </Route>
 
-  const handleRefreshLeadsFromStorage = () => {
-    getStoredLeads().then((l) => setLeads(l)).catch((e) => console.error('refresh leads failed:', e));
-  };
+        {/* 404 fallback → về trang chủ */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+// =================== HomePage ===================
+interface HomePageProps {
+  projects: Project[];
+  apartments: ApartmentUnit[];
+  leads: LeadRecord[];
+  settings: AppSettings;
+  sortedApartments: ApartmentUnit[];
+  selectedProjectId: string;
+  selectedTower: string;
+  selectedAxis: string;
+  selectedUnitType: ApartmentUnitType | 'all';
+  searchKeyword: string;
+  sortBy: 'default' | 'area_asc' | 'area_desc';
+  availableTowers: string[];
+  availableAxes: string[];
+  searchSectionRef: React.RefObject<HTMLDivElement | null>;
+  resultsSectionRef: React.RefObject<HTMLDivElement | null>;
+  isDetailModalOpen: boolean;
+  selectedApartmentForDetail: ApartmentUnit | null;
+  detailModalInitialTab: string;
+  isLeadCaptureOpen: boolean;
+  leadCaptureAction: 'download_blueprint' | 'download_catalogue' | 'request_quotation' | 'book_consult';
+  targetApartmentForLead: ApartmentUnit | null;
+  onProjectChange: (id: string) => void;
+  onTowerChange: (tower: string) => void;
+  onAxisChange: (axis: string) => void;
+  onUnitTypeChange: (type: ApartmentUnitType | 'all') => void;
+  onKeywordChange: (kw: string) => void;
+  onSortChange: (s: 'default' | 'area_asc' | 'area_desc') => void;
+  onSearchSubmit: () => void;
+  onResetFilter: () => void;
+  onScrollToSearch: () => void;
+  onOpenDetailModal: (apt: ApartmentUnit, tab?: string) => void;
+  onOpenDownloadModal: (
+    apt: ApartmentUnit,
+    type: 'download_blueprint' | 'download_catalogue' | 'request_quotation' | 'book_consult'
+  ) => void;
+  onOpenConsultDirect: () => void;
+  onCloseDetailModal: () => void;
+  onCloseLeadCapture: () => void;
+  onLeadSubmitted: () => void;
+}
+
+const HomePage: React.FC<HomePageProps> = ({
+  settings,
+  projects,
+  selectedProjectId,
+  selectedTower,
+  selectedAxis,
+  selectedUnitType,
+  searchKeyword,
+  sortBy,
+  availableTowers,
+  availableAxes,
+  searchSectionRef,
+  resultsSectionRef,
+  selectedApartmentForDetail,
+  detailModalInitialTab,
+  isDetailModalOpen,
+  isLeadCaptureOpen,
+  leadCaptureAction,
+  targetApartmentForLead,
+  sortedApartments,
+  leads,
+  onProjectChange,
+  onTowerChange,
+  onAxisChange,
+  onUnitTypeChange,
+  onKeywordChange,
+  onSortChange,
+  onSearchSubmit,
+  onResetFilter,
+  onScrollToSearch,
+  onOpenDetailModal,
+  onOpenDownloadModal,
+  onOpenConsultDirect,
+  onCloseDetailModal,
+  onCloseLeadCapture,
+  onLeadSubmitted,
+}) => {
+  const navigate = useNavigate();
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(isAdminSessionValid());
+
+  // Keyboard shortcut: Ctrl+Shift+A → admin
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (isAdminSessionValid()) {
+          navigate('/admin');
+        } else {
+          navigate('/admin/login');
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
-      {/* 1. Header / Navbar */}
+      <Analytics />
+
       <Navbar
         settings={settings}
-        leads={leads}
         isAdminAuthenticated={isAdminAuthenticated}
-        isAdminOpen={isAdminPortalOpen}
-        onToggleAdmin={handleTriggerAdminAccess}
-        onScrollToSearch={handleScrollToSearch}
-        onOpenConsultModal={handleOpenConsultDirect}
+        isAdminOpen={false}
+        onToggleAdmin={() => {
+          if (isAdminSessionValid()) {
+            setIsAdminAuthenticated(true);
+            navigate('/admin');
+          } else {
+            navigate('/admin/login');
+          }
+        }}
+        onOpenConsultModal={onOpenConsultDirect}
       />
 
-      {/* 2. Hero Section with Search Engine */}
       <div ref={searchSectionRef}>
         <HeroSearch
           settings={settings}
@@ -334,27 +478,18 @@ export default function App() {
           searchKeyword={searchKeyword}
           availableTowers={availableTowers}
           availableAxes={availableAxes}
-          onProjectChange={(projId) => {
-            setSelectedProjectId(projId);
-            setSelectedTower('all'); // Reset tower when switching project
-            setSelectedAxis('all'); // Reset axis when switching project
-          }}
-          onTowerChange={(tower) => {
-            setSelectedTower(tower);
-            setSelectedAxis('all'); // Reset axis when switching tower
-          }}
-          onAxisChange={setSelectedAxis}
-          onUnitTypeChange={setSelectedUnitType}
-          onKeywordChange={setSearchKeyword}
-          onSearchSubmit={handleSearchSubmit}
-          onResetFilter={handleResetFilter}
+          onProjectChange={onProjectChange}
+          onTowerChange={onTowerChange}
+          onAxisChange={onAxisChange}
+          onUnitTypeChange={onUnitTypeChange}
+          onKeywordChange={onKeywordChange}
+          onSearchSubmit={onSearchSubmit}
+          onResetFilter={onResetFilter}
           totalResultsCount={sortedApartments.length}
         />
       </div>
 
-      {/* 3. Main Results Grid */}
       <main ref={resultsSectionRef} className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-6">
-        {/* Results Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
           <div>
             <div className="flex items-center space-x-2">
@@ -373,8 +508,6 @@ export default function App() {
                 : 'Hiển thị tất cả các căn hộ và sơ đồ mặt bằng kỹ thuật'}
             </p>
           </div>
-
-          {/* Sort Selector */}
           <div className="flex items-center space-x-2 text-xs text-slate-600 w-full sm:w-auto justify-between sm:justify-start">
             <span className="font-semibold text-slate-700 flex items-center space-x-1">
               <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
@@ -382,7 +515,7 @@ export default function App() {
             </span>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => onSortChange(e.target.value as any)}
               className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-blue-200 cursor-pointer"
             >
               <option value="default">Mặc định</option>
@@ -392,21 +525,19 @@ export default function App() {
           </div>
         </div>
 
-        {/* Apartments Cards Grid */}
         {sortedApartments.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {sortedApartments.map((apartment) => (
               <ApartmentCard
                 key={apartment.id}
                 apartment={apartment}
-                onViewDetail={handleOpenDetailModal}
-                onDownloadBlueprint={(apt) => handleOpenDownloadModal(apt, 'download_blueprint')}
-                onRequestQuote={(apt) => handleOpenDownloadModal(apt, 'request_quotation')}
+                onViewDetail={onOpenDetailModal}
+                onDownloadBlueprint={(apt) => onOpenDownloadModal(apt, 'download_blueprint')}
+                onRequestQuote={(apt) => onOpenDownloadModal(apt, 'request_quotation')}
               />
             ))}
           </div>
         ) : (
-          /* Empty Search State */
           <div className="text-center py-16 px-4 bg-white rounded-3xl border border-slate-200 shadow-xs max-w-2xl mx-auto space-y-4">
             <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
               <SearchX className="w-8 h-8" />
@@ -419,13 +550,13 @@ export default function App() {
             </p>
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
               <button
-                onClick={handleResetFilter}
+                onClick={onResetFilter}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl cursor-pointer"
               >
                 Xóa Tất Cả Bộ Lọc
               </button>
               <button
-                onClick={handleOpenConsultDirect}
+                onClick={onOpenConsultDirect}
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer"
               >
                 Gửi Yêu Cầu Tìm Mã Căn Riêng
@@ -435,83 +566,69 @@ export default function App() {
         )}
       </main>
 
-      {/* 4. Consultation Process & Custom Form Section */}
-      <ConsultationSection
-        settings={settings}
-        onLeadSubmitted={handleRefreshLeadsFromStorage}
-      />
+      <ConsultationSection settings={settings} onLeadSubmitted={onLeadSubmitted} />
 
-      {/* 5. Footer */}
       <Footer
         settings={settings}
         isAdminAuthenticated={isAdminAuthenticated}
-        onOpenAdmin={handleTriggerAdminAccess}
+        onOpenAdmin={() => {
+          if (isAdminSessionValid()) {
+            navigate('/admin');
+          } else {
+            navigate('/admin/login');
+          }
+        }}
       />
 
-      {/* 6. Sticky Mobile CTA Bar */}
       <StickyMobileCTA
         settings={settings}
-        onScrollToSearch={handleScrollToSearch}
-        onOpenQuickConsult={handleOpenConsultDirect}
+        onScrollToSearch={onScrollToSearch}
+        onOpenQuickConsult={onOpenConsultDirect}
       />
 
-      {/* 7. Apartment Detail Modal */}
       {isDetailModalOpen && selectedApartmentForDetail && (
         <ApartmentDetailModal
           apartment={selectedApartmentForDetail}
           isOpen={isDetailModalOpen}
           initialTab={detailModalInitialTab}
           settings={settings}
-          onClose={() => {
-            setIsDetailModalOpen(false);
-            setSelectedApartmentForDetail(null);
-          }}
-          onOpenDownloadModal={handleOpenDownloadModal}
+          onClose={onCloseDetailModal}
+          onOpenDownloadModal={onOpenDownloadModal}
         />
       )}
 
-      {/* 8. Lead Capture Modal (Gated Download Gate) */}
       {isLeadCaptureOpen && (
         <LeadCaptureModal
           isOpen={isLeadCaptureOpen}
-          onClose={() => {
-            setIsLeadCaptureOpen(false);
-            setTargetApartmentForLead(null);
-          }}
+          onClose={onCloseLeadCapture}
           apartment={targetApartmentForLead}
           actionType={leadCaptureAction}
           settings={settings}
-          onLeadSubmitted={handleRefreshLeadsFromStorage}
-        />
-      )}
-
-      {/* 9. Admin Login Modal (Secure SHA-256 Gate) */}
-      {isAdminLoginModalOpen && (
-        <AdminLoginModal
-          isOpen={isAdminLoginModalOpen}
-          onClose={() => setIsAdminLoginModalOpen(false)}
-          settings={settings}
-          onLoginSuccess={handleAdminLoginSuccess}
-        />
-      )}
-
-      {/* 10. Admin Portal Drawer / Modal */}
-      {isAdminPortalOpen && (
-        <AdminPortal
-          isOpen={isAdminPortalOpen}
-          onClose={() => setIsAdminPortalOpen(false)}
-          onLogout={handleAdminLogout}
-          projects={projects}
-          apartments={apartments}
-          leads={leads}
-          settings={settings}
-          onSaveProjects={handleSaveProjects}
-          onSaveApartments={handleSaveApartments}
-          onSaveLeads={handleSaveLeads}
-          onSaveSettings={handleSaveSettings}
-          onRefreshAllData={refreshAllDataFromStorage}
+          onLeadSubmitted={onLeadSubmitted}
         />
       )}
     </div>
   );
-}
+};
+
+// =================== 404 ===================
+const NotFoundPage: React.FC = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="text-center max-w-md">
+        <div className="text-6xl font-extrabold text-slate-300 mb-2">404</div>
+        <h1 className="text-xl font-bold text-slate-900 mb-2">Không tìm thấy trang</h1>
+        <p className="text-sm text-slate-500 mb-6">
+          Đường dẫn bạn truy cập không tồn tại hoặc đã được di chuyển.
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl"
+        >
+          Về Trang Chủ
+        </button>
+      </div>
+    </div>
+  );
+};

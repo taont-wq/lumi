@@ -313,9 +313,9 @@ export async function uploadImageForApp(file: File): Promise<string> {
 //  EXPORT / IMPORT / RESET (unchanged behaviour, local only)
 // ============================================================
 
-export function exportLeadsToCsv(): void {
-  getStoredLeads().then((leads) => {
-    if (leads.length === 0) {
+export function exportLeadsToCsv(leads?: LeadRecord[]): void {
+  const doExport = (data: LeadRecord[]) => {
+    if (data.length === 0) {
       alert('Chưa có dữ liệu khách hàng để xuất.');
       return;
     }
@@ -324,7 +324,7 @@ export function exportLeadsToCsv(): void {
       'Loại Căn', 'Hành Động / Yêu Cầu', 'Trạng Thái Xử Lý', 'Ghi Chú',
       'Đã Đồng Bộ Google Sheet',
     ];
-    const rows = leads.map((item) => [
+    const rows = data.map((item) => [
       `"${item.createdAt}"`,
       `"${item.fullName.replace(/"/g, '""')}"`,
       `"${item.phoneNumber}"`,
@@ -336,16 +336,105 @@ export function exportLeadsToCsv(): void {
       `"${(item.note || '').replace(/"/g, '""')}"`,
       `"${item.syncedToGoogleSheet ? 'Đã đồng bộ' : 'Chưa'}"`,
     ]);
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Danh_Sach_Khach_Hang_Can_Ho_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  });
+    downloadCsv(rows, headers, `Danh_Sach_Khach_Hang_Can_Ho_${todayStamp()}.csv`);
+  };
+
+  if (leads) {
+    doExport(leads);
+  } else {
+    getStoredLeads().then(doExport);
+  }
+}
+
+/**
+ * Xuất danh sách căn hộ ra file CSV (mở bằng Excel/Google Sheets).
+ */
+export function exportApartmentsToCsv(apartments: ApartmentUnit[]): void {
+  if (apartments.length === 0) {
+    alert('Chưa có căn hộ nào để xuất.');
+    return;
+  }
+  const headers = [
+    'Mã Căn', 'Dự Án', 'Tòa', 'Trục', 'Tầng', 'Loại Căn', 'Tên Loại Căn',
+    'DT Tim Tường (m²)', 'DT Thông Thủy (m²)', 'Chiều Cao Trần (m)',
+    'Hướng', 'Mô Tả', 'Ưu Điểm', 'Số Phòng', 'Hình Mặt Bằng',
+    'PDF Mặt Bằng', 'CAD Download', 'Catalogue Nội Thất',
+    'Giá Cơ Bản', 'Giá Tiêu Chuẩn', 'Giá Cao Cấp',
+  ];
+  const rows = apartments.map((a) => [
+    `"${(a.unitCode || '').replace(/"/g, '""')}"`,
+    `"${(a.projectName || '').replace(/"/g, '""')}"`,
+    `"${(a.tower || '').replace(/"/g, '""')}"`,
+    `"${(a.axisNumber || '').replace(/"/g, '""')}"`,
+    `"${(a.floorRange || '').replace(/"/g, '""')}"`,
+    `"${(a.unitType || '').replace(/"/g, '""')}"`,
+    `"${(a.unitTypeName || '').replace(/"/g, '""')}"`,
+    String(a.grossArea ?? ''),
+    String(a.netArea ?? ''),
+    String(a.ceilingHeight ?? ''),
+    `"${(a.direction || '').replace(/"/g, '""')}"`,
+    `"${(a.description || '').replace(/"/g, '""')}"`,
+    `"${(a.highlights || []).join(' | ').replace(/"/g, '""')}"`,
+    String((a.roomDimensions || []).length),
+    `"${(a.floorPlanImageUrl || '').replace(/"/g, '""')}"`,
+    `"${(a.floorPlanPdfUrl || '').replace(/"/g, '""')}"`,
+    `"${(a.cadDownloadUrl || '').replace(/"/g, '""')}"`,
+    `"${(a.interiorCataloguePdfUrl || '').replace(/"/g, '""')}"`,
+    `"${(a.estimatedCostRange?.basic || '').replace(/"/g, '""')}"`,
+    `"${(a.estimatedCostRange?.standard || '').replace(/"/g, '""')}"`,
+    `"${(a.estimatedCostRange?.premium || '').replace(/"/g, '""')}"`,
+  ]);
+  downloadCsv(rows, headers, `Danh_Sach_Can_Ho_${todayStamp()}.csv`);
+}
+
+/**
+ * Xuất danh sách dự án ra file CSV.
+ */
+export function exportProjectsToCsv(projects: Project[]): void {
+  if (projects.length === 0) {
+    alert('Chưa có dự án nào để xuất.');
+    return;
+  }
+  const headers = [
+    'Tên Dự Án', 'Slug', 'Vị Trí', 'Chủ Đầu Tư', 'Tổng Số Căn',
+    'Số Tòa Tháp', 'Danh Sách Tòa', 'Loại Căn Có Sẵn', 'Banner URL', 'Mô Tả',
+  ];
+  const rows = projects.map((p) => [
+    `"${(p.name || '').replace(/"/g, '""')}"`,
+    `"${(p.slug || '').replace(/"/g, '""')}"`,
+    `"${(p.location || '').replace(/"/g, '""')}"`,
+    `"${(p.developer || '').replace(/"/g, '""')}"`,
+    `"${(p.totalUnits || '').replace(/"/g, '""')}"`,
+    String((p.towers || []).length),
+    `"${(p.towers || []).join(' | ').replace(/"/g, '""')}"`,
+    `"${(p.availableUnitTypes || []).join(' | ').replace(/"/g, '""')}"`,
+    `"${(p.bannerUrl || '').replace(/"/g, '""')}"`,
+    `"${(p.description || '').replace(/"/g, '""')}"`,
+  ]);
+  downloadCsv(rows, headers, `Danh_Sach_Du_An_${todayStamp()}.csv`);
+}
+
+/**
+ * Helper: tạo tên file có ngày YYYY-MM-DD.
+ */
+function todayStamp(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Helper: ghép rows + headers thành CSV có BOM UTF-8, tạo Blob và trigger download.
+ */
+function downloadCsv(rows: string[][], headers: string[], filename: string): void {
+  const csv = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export async function updateAdminPassword(newPasswordPlain: string): Promise<boolean> {
@@ -380,11 +469,16 @@ export function exportSystemBackup(): void {
       const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
+      // Tên file có timestamp chi tiết: lumi-backup-20250903_1430.json
+      const d = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
       link.setAttribute('href', url);
-      link.setAttribute('download', `Sao_Luu_He_Thong_Can_Ho_${new Date().toISOString().slice(0, 10)}.json`);
+      link.setAttribute('download', `lumi-backup-${stamp}.json`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
   );
 }

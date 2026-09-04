@@ -16,6 +16,7 @@ import { useCatalogState } from './catalog/useCatalogState';
 import { TreeView } from './catalog/TreeView';
 import { MatrixView } from './catalog/MatrixView';
 import { QuickActionModal } from './catalog/QuickActionModal';
+import { DialogApi } from './admin/Modal';
 
 interface CatalogTreeManagerProps {
   projects: Project[];
@@ -25,6 +26,7 @@ interface CatalogTreeManagerProps {
   onOpenApartmentEditor: (apt: ApartmentUnit) => void;
   onOpenProjectEditor: (project: Project) => void;
   onAddNewApartmentWithDefaults?: (defaults: Partial<ApartmentUnit>) => void;
+  dialog?: DialogApi;
 }
 
 export const CatalogTreeManager: React.FC<CatalogTreeManagerProps> = (props) => {
@@ -42,7 +44,8 @@ export const CatalogTreeManager: React.FC<CatalogTreeManagerProps> = (props) => 
     props.onSaveApartments,
     props.onOpenApartmentEditor,
     props.onAddNewApartmentWithDefaults,
-    showToast
+    showToast,
+    props.dialog
   );
 
   const newProject = (): Project => ({
@@ -123,6 +126,14 @@ export const CatalogTreeManager: React.FC<CatalogTreeManagerProps> = (props) => 
           </div>
 
           <button
+            onClick={() => state.handleTriggerAddUnit(state.activeContext.defaultNewUnit)}
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1 shadow-xs cursor-pointer"
+            title="Thêm căn hộ mới (dùng vị trí đang chọn trong cây thư mục)"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Thêm Căn Hộ</span>
+          </button>
+          <button
             onClick={() => props.onOpenProjectEditor(newProject())}
             className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1 shadow-xs cursor-pointer"
           >
@@ -140,6 +151,7 @@ export const CatalogTreeManager: React.FC<CatalogTreeManagerProps> = (props) => 
           state={state}
           onOpenApartmentEditor={props.onOpenApartmentEditor}
           onOpenProjectEditor={props.onOpenProjectEditor}
+          dialog={props.dialog}
         />
       ) : (
         <MatrixView
