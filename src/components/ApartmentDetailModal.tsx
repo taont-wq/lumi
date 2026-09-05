@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { ApartmentUnit, AppSettings, InteriorDesignStyle, InteriorImage, VideoItem } from '../types';
 import { parseVideoInfo, openExternalVideo } from '../utils/videoUtils';
+import { ShareUnitButton } from './ShareUnitButton';
 
 interface ApartmentDetailModalProps {
   apartment: ApartmentUnit | null;
@@ -99,6 +100,7 @@ export const ApartmentDetailModal: React.FC<ApartmentDetailModalProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
+            <ShareUnitButton apartment={apartment} settings={settings} />
             <button
               onClick={() => onOpenDownloadModal(apartment, 'download_blueprint')}
               className="hidden sm:inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs cursor-pointer"

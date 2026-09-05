@@ -24,6 +24,8 @@ import {
 } from './services/supabaseStorage';
 import { getCurrentSession, signOut, onAuthStateChange } from './lib/auth';
 import { INITIAL_SETTINGS as INITIAL_SETTINGS_FALLBACK } from './data/initialData';
+import { SmartFilters, matchSmartFilters } from './lib/vietnameseSearch';
+import { getSharedUnitCode, clearSharedUnitCode } from './lib/unitShare';
 
 import { Navbar } from './components/Navbar';
 import { HeroSearch } from './components/HeroSearch';
@@ -34,6 +36,7 @@ import { ConsultationSection } from './components/ConsultationSection';
 import { Footer } from './components/Footer';
 import { StickyMobileCTA } from './components/StickyMobileCTA';
 import { Analytics } from './components/Analytics';
+import { SmartSearchBar } from './components/SmartSearchBar';
 
 import { RouteGuard } from './components/RouteGuard';
 import { AdminLoginPage } from './pages/AdminLoginPage';
@@ -68,6 +71,7 @@ export default function App() {
   const [selectedUnitType, setSelectedUnitType] = useState<ApartmentUnitType | 'all'>('all');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [sortBy, setSortBy] = useState<'default' | 'area_asc' | 'area_desc'>('default');
+  const [smartFilters, setSmartFilters] = useState<SmartFilters | null>(null);
 
   // ===== Modal states =====
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -182,6 +186,7 @@ export default function App() {
       selectedAxis === 'all' ||
       (apt.axisNumber && apt.axisNumber.trim().toLowerCase() === selectedAxis.trim().toLowerCase());
     const matchUnitType = selectedUnitType === 'all' || apt.unitType === selectedUnitType;
+    const matchSmart = !smartFilters || matchSmartFilters(apt, smartFilters);
     const kw = searchKeyword.trim().toLowerCase();
     const matchKeyword =
       !kw ||
@@ -192,7 +197,7 @@ export default function App() {
       apt.unitTypeName.toLowerCase().includes(kw) ||
       (apt.direction && apt.direction.toLowerCase().includes(kw)) ||
       (apt.highlights && apt.highlights.some((h) => h.toLowerCase().includes(kw)));
-    return matchProject && matchTower && matchAxis && matchUnitType && matchKeyword;
+    return matchProject && matchTower && matchAxis && matchUnitType && matchKeyword && matchSmart;
   });
 
   const sortedApartments = [...filteredApartments].sort((a, b) => {
@@ -218,6 +223,12 @@ export default function App() {
     setSelectedAxis('all');
     setSelectedUnitType('all');
     setSearchKeyword('');
+    setSmartFilters(null);
+  };
+  const handleApplySmart = (filters: SmartFilters) => {
+    handleResetFilter();
+    setSmartFilters(filters);
+    handleSearchSubmit();
   };
   const handleOpenDetailModal = (apartment: ApartmentUnit, defaultTab = 'dimensions') => {
     setSelectedApartmentForDetail(apartment);
@@ -237,6 +248,20 @@ export default function App() {
     setLeadCaptureAction('book_consult');
     setIsLeadCaptureOpen(true);
   };
+  const deepLinkHandledRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandledRef.current || isInitialLoading || apartments.length === 0) return;
+    deepLinkHandledRef.current = true;
+    const code = getSharedUnitCode();
+    if (!code) return;
+    const found = apartments.find(
+      (a) => a.unitCode.toLowerCase() === code.toLowerCase()
+    );
+    if (found) {
+      handleOpenDetailModal(found);
+      clearSharedUnitCode();
+    }
+  }, [isInitialLoading, apartments]);
 
   // ===== Loading screen =====
   if (isInitialLoading) {
@@ -307,6 +332,8 @@ export default function App() {
                 setTargetApartmentForLead(null);
               }}
               onLeadSubmitted={handleRefreshLeadsFromStorage}
+              onApplySmart={handleApplySmart}
+              onClearSmart={() => setSmartFilters(null)}
             />
           }
         />
@@ -387,6 +414,8 @@ interface HomePageProps {
   onCloseDetailModal: () => void;
   onCloseLeadCapture: () => void;
   onLeadSubmitted: () => void;
+  onApplySmart: (f: SmartFilters) => void;
+  onClearSmart: () => void;
 }
 
 const HomePage: React.FC<HomePageProps> = ({
@@ -425,6 +454,8 @@ const HomePage: React.FC<HomePageProps> = ({
   onCloseDetailModal,
   onCloseLeadCapture,
   onLeadSubmitted,
+  onApplySmart,
+  onClearSmart,
 }) => {
   const navigate = useNavigate();
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
@@ -481,6 +512,7 @@ const HomePage: React.FC<HomePageProps> = ({
         onOpenConsultModal={onOpenConsultDirect}
       />
 
+      <SmartSearchBar onApply={onApplySmart} onClear={onClearSmart} />
       <div ref={searchSectionRef}>
         <HeroSearch
           settings={settings}
