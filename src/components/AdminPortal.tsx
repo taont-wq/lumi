@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { ApartmentUnit, AppSettings, LeadRecord, Project } from '../types';
 import { CatalogTreeManager } from './CatalogTreeManager';
-import { clearAdminSession } from '../services/authService';
+import { signOut } from '../lib/auth';
 import { LeadsTab } from './admin/LeadsTab';
 import { SettingsTab } from './admin/SettingsTab';
 import { ApartmentEditorModal } from './admin/ApartmentEditorModal';
@@ -102,18 +102,18 @@ const AdminPortalContent: React.FC<AdminPortalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleLogoutAdmin = async () => {
-    const ok = await dialog.confirm(
-      'Đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất khỏi khu vực Quản Trị?',
-      { tone: 'warning', confirmText: 'Đăng xuất' }
-    );
-    if (ok) {
-      clearAdminSession();
-      if (onLogout) onLogout();
-      else onClose();
-    }
-  };
+      const handleLogoutAdmin = async () => {
+        const ok = await dialog.confirm(
+          'Đăng xuất',
+          'Bạn có chắc chắn muốn đăng xuất khỏi khu vực Quản Trị?',
+          { tone: 'warning', confirmText: 'Đăng xuất' }
+        );
+        if (ok) {
+          await signOut();
+          if (onLogout) onLogout();
+          else onClose();
+        }
+      };
 
   return (
     <DialogHost>

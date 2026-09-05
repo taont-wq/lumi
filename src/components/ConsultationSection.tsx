@@ -12,7 +12,8 @@ import {
   Building,
 } from 'lucide-react';
 import { AppSettings } from '../types';
-import { submitLead } from '../services/storageService';
+import { submitLeadToGoogleForm } from '../services/googleFormLead';
+import { addLead } from '../services/supabaseStorage';
 import confetti from 'canvas-confetti';
 
 interface ConsultationSectionProps {
@@ -36,15 +37,34 @@ export const ConsultationSection: React.FC<ConsultationSectionProps> = ({
 
     setIsSubmitting(true);
     try {
-      await submitLead({
+      const now = new Date();
+      const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      const newLead = {
+        id: crypto.randomUUID(),
         fullName: 'Khách yêu cầu căn mới',
         phoneNumber: customPhone.trim(),
         projectId: 'custom',
         projectName: customProject.trim() || 'Dự án khác',
         unitCode: customUnit.trim() || 'Yêu cầu tìm mã căn',
-        action: 'book_consult',
+        unitType: '',
+        action: 'book_consult' as const,
         actionName: 'Yêu cầu tìm mã căn & đo đạc miễn phí',
         note: `Khách cần tìm thông tin dự án ${customProject || 'chưa rõ'} - Mã căn: ${customUnit || 'chưa rõ'}`,
+        createdAt: formattedDate,
+        status: 'new' as const,
+        syncedToGoogleSheet: false,
+      };
+      await addLead(newLead);
+      await submitLeadToGoogleForm({
+        fullName: newLead.fullName,
+        phoneNumber: newLead.phoneNumber,
+        email: null,
+        projectName: newLead.projectName,
+        unitCode: newLead.unitCode,
+        unitType: newLead.unitType,
+        action: newLead.action,
+        actionName: newLead.actionName,
+        note: newLead.note,
       });
 
       setIsSubmitting(false);

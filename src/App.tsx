@@ -13,19 +13,16 @@ import {
   Project,
 } from './types';
 import {
+  getStoredProjects,
   getStoredApartments,
   getStoredLeads,
-  getStoredProjects,
   getStoredSettings,
+  saveStoredProjects,
   saveStoredApartments,
   saveStoredLeads,
-  saveStoredProjects,
   saveStoredSettings,
-} from './services/storageService';
-import {
-  isAdminSessionValid,
-  clearAdminSession,
-} from './services/authService';
+} from './services/supabaseStorage';
+import { getCurrentSession, signOut } from './lib/auth';
 import { INITIAL_SETTINGS as INITIAL_SETTINGS_FALLBACK } from './data/initialData';
 
 import { Navbar } from './components/Navbar';
@@ -102,7 +99,7 @@ export default function App() {
       setLeads(l);
       setSettings(s);
     } catch (err) {
-      console.error('Failed to load data from storage:', err);
+      console.error('Failed to load data from Supabase:', err);
     } finally {
       setIsInitialLoading(false);
     }
@@ -430,14 +427,21 @@ const HomePage: React.FC<HomePageProps> = ({
   onLeadSubmitted,
 }) => {
   const navigate = useNavigate();
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(isAdminSessionValid());
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+
+  // Check Supabase session on mount
+  useEffect(() => {
+    getCurrentSession().then((session) => {
+      setIsAdminAuthenticated(!!session);
+    });
+  }, []);
 
   // Keyboard shortcut: Ctrl+Shift+A → admin
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        if (isAdminSessionValid()) {
+        if (isAdminAuthenticated) {
           navigate('/admin');
         } else {
           navigate('/admin/login');
@@ -446,7 +450,7 @@ const HomePage: React.FC<HomePageProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
+  }, [navigate, isAdminAuthenticated]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
@@ -456,8 +460,9 @@ const HomePage: React.FC<HomePageProps> = ({
         settings={settings}
         isAdminAuthenticated={isAdminAuthenticated}
         isAdminOpen={false}
-        onToggleAdmin={() => {
-          if (isAdminSessionValid()) {
+        onToggleAdmin={async () => {
+          const session = await getCurrentSession();
+          if (session) {
             setIsAdminAuthenticated(true);
             navigate('/admin');
           } else {
@@ -571,8 +576,10 @@ const HomePage: React.FC<HomePageProps> = ({
       <Footer
         settings={settings}
         isAdminAuthenticated={isAdminAuthenticated}
-        onOpenAdmin={() => {
-          if (isAdminSessionValid()) {
+        onOpenAdmin={async () => {
+          const session = await getCurrentSession();
+          if (session) {
+            setIsAdminAuthenticated(true);
             navigate('/admin');
           } else {
             navigate('/admin/login');

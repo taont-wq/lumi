@@ -14,7 +14,8 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ApartmentUnit, AppSettings } from '../types';
-import { submitLead } from '../services/storageService';
+import { submitLeadToGoogleForm } from '../services/googleFormLead';
+import { addLead } from '../services/supabaseStorage';
 
 interface LeadCaptureModalProps {
   isOpen: boolean;
@@ -94,7 +95,10 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         .filter(Boolean)
         .join(' - ');
 
-      await submitLead({
+      const now = new Date();
+      const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      const newLead = {
+        id: crypto.randomUUID(),
         fullName: fullName.trim() || 'Khách hàng',
         phoneNumber: cleanPhone,
         projectId: apartment?.projectId || 'all',
@@ -104,6 +108,21 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         action: actionType,
         actionName: getActionTitle(),
         note: fullNote,
+        createdAt: formattedDate,
+        status: 'new' as const,
+        syncedToGoogleSheet: false,
+      };
+      await addLead(newLead);
+      await submitLeadToGoogleForm({
+        fullName: newLead.fullName,
+        phoneNumber: newLead.phoneNumber,
+        email: null,
+        projectName: newLead.projectName,
+        unitCode: newLead.unitCode,
+        unitType: newLead.unitType,
+        action: newLead.action,
+        actionName: newLead.actionName,
+        note: newLead.note,
       });
 
       setIsSubmitting(false);
