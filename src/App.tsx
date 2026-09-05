@@ -37,6 +37,7 @@ import { Footer } from './components/Footer';
 import { StickyMobileCTA } from './components/StickyMobileCTA';
 import { Analytics } from './components/Analytics';
 import { SmartSearchModal } from './components/SmartSearchModal';
+import { SeoJsonLd } from './components/SeoJsonLd';
 
 import { RouteGuard } from './components/RouteGuard';
 import { AdminLoginPage } from './pages/AdminLoginPage';
@@ -516,6 +517,7 @@ const HomePage: React.FC<HomePageProps> = ({
         onOpenSmartSearch={() => setIsSmartSearchOpen(true)}
       />
 
+      <SeoJsonLd apartments={apartments} />
       <div ref={searchSectionRef}>
         <HeroSearch
           settings={settings}
