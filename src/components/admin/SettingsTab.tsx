@@ -460,6 +460,44 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
       </div>
 
+      {/* Hero Headline Settings */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <h3 className="text-base font-bold text-slate-900">Chữ Trang Chủ (Hero)</h3>
+        <p className="text-xs text-slate-500">
+          Tiêu đề và mô tả hiện ngay trên đầu trang chủ, phía trên bộ lọc tìm kiếm.
+        </p>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Tiêu đề chính:</label>
+          <input
+            type="text"
+            value={localSettings.heroHeadline}
+            onChange={(e) => setLocalSettings({ ...localSettings, heroHeadline: e.target.value })}
+            className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Mô tả phụ:</label>
+          <textarea
+            rows={3}
+            value={localSettings.heroSubheadline}
+            onChange={(e) => setLocalSettings({ ...localSettings, heroSubheadline: e.target.value })}
+            className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2"
+          />
+        </div>
+        <div className="pt-2 flex justify-end">
+          <button
+            onClick={async () => {
+              onSaveSettings(localSettings);
+              await dlg.alert('Thành công', 'Đã lưu chữ trang chủ!', 'success');
+            }}
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center space-x-1.5"
+          >
+            <Save className="w-4 h-4" />
+            <span>Lưu Chữ Trang Chủ</span>
+          </button>
+        </div>
+      </div>
+
       {/* Brand Settings */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
         <h3 className="text-base font-bold text-slate-900">Thông Tin Liên Hệ & Thương Hiệu</h3>
