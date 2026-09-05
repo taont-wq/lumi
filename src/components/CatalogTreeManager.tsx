@@ -11,7 +11,7 @@
 
 import React, { useState } from 'react';
 import { FolderTree, Table as TableIcon, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
-import { ApartmentUnit, Project } from '../types';
+import { ApartmentUnit, AppSettings, Project } from '../types';
 import { useCatalogState } from './catalog/useCatalogState';
 import { TreeView } from './catalog/TreeView';
 import { MatrixView } from './catalog/MatrixView';
@@ -21,6 +21,7 @@ import { DialogApi } from './admin/Modal';
 interface CatalogTreeManagerProps {
   projects: Project[];
   apartments: ApartmentUnit[];
+  settings: AppSettings;
   onSaveProjects: (projects: Project[]) => void;
   onSaveApartments: (apartments: ApartmentUnit[]) => void;
   onOpenApartmentEditor: (apt: ApartmentUnit) => void;
@@ -157,6 +158,7 @@ export const CatalogTreeManager: React.FC<CatalogTreeManagerProps> = (props) => 
         <MatrixView
           projects={props.projects}
           apartments={props.apartments}
+          settings={props.settings}
           state={state}
           onOpenApartmentEditor={props.onOpenApartmentEditor}
         />

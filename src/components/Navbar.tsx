@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, MessageSquare, ShieldCheck, PlusCircle, Home } from 'lucide-react';
+import { Phone, MessageSquare, ShieldCheck, PlusCircle, Home, Sparkles } from 'lucide-react';
 import { AppSettings } from '../types';
 
 interface NavbarProps {
@@ -8,6 +8,7 @@ interface NavbarProps {
   isAdminOpen: boolean;
   onToggleAdmin: () => void;
   onOpenConsultModal: () => void;
+  onOpenSmartSearch?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -16,6 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isAdminOpen,
   onToggleAdmin,
   onOpenConsultModal,
+  onOpenSmartSearch,
 }) => {
   const s = settings || { hotline: '058 929 4444', hotline2: '083 555 7878', zaloNumber: '0589294444', zaloLink: 'https://zalo.me/0589294444' };
   return (
@@ -81,9 +83,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onOpenConsultModal}
               className="inline-flex items-center space-x-1.5 px-2.5 lg:px-3.5 py-1.5 lg:py-2 text-xs lg:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-lg shadow-sm transition-all cursor-pointer"
             >
-              <PlusCircle className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
+              <PlusCircle className="w-3.5 h-3.5 lg:w-4 h-4 shrink-0" />
               <span className="hidden md:inline">Tư Vấn</span>
             </button>
+
+            {/* Tìm thông minh */}
+            {onOpenSmartSearch && (
+              <button
+                onClick={onOpenSmartSearch}
+                className="inline-flex items-center space-x-1.5 px-2.5 lg:px-3.5 py-1.5 lg:py-2 text-xs lg:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 rounded-lg shadow-sm transition-all cursor-pointer"
+                title="Tìm căn bằng tiếng Việt tự nhiên"
+              >
+                <Sparkles className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
+                <span className="hidden md:inline">Tìm thông minh</span>
+              </button>
+            )}
 
             {/* Admin (chỉ hiện khi đã auth) */}
             {isAdminAuthenticated && (

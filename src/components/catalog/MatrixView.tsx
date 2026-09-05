@@ -5,12 +5,14 @@
 
 import React from 'react';
 import { Search, Copy, Trash2 } from 'lucide-react';
-import { ApartmentUnit, ApartmentUnitType, Project } from '../../types';
+import { ApartmentUnit, ApartmentUnitType, AppSettings, Project } from '../../types';
 import type { CatalogState } from './useCatalogState';
+import { ShareUnitButton } from '../ShareUnitButton';
 
 interface MatrixViewProps {
   projects: Project[];
   apartments: ApartmentUnit[];
+  settings: AppSettings;
   state: CatalogState;
   onOpenApartmentEditor: (apt: ApartmentUnit) => void;
 }
@@ -18,10 +20,31 @@ interface MatrixViewProps {
 export const MatrixView: React.FC<MatrixViewProps> = ({
   projects,
   apartments,
+  settings,
   state,
   onOpenApartmentEditor,
 }) => {
   const s = state;
+  const countBy = (list: ApartmentUnit[], key: (a: ApartmentUnit) => string) => {
+    const m = new Map<string, number>();
+    list.forEach((a) => {
+      const k = key(a);
+      if (k) m.set(k, (m.get(k) || 0) + 1);
+    });
+    return m;
+  };
+  const projectCounts = countBy(apartments, (a) => a.projectId);
+  const towerPool =
+    s.matrixProjectFilter === 'all'
+      ? apartments
+      : apartments.filter((a) => a.projectId === s.matrixProjectFilter);
+  const towerCounts = countBy(towerPool, (a) => (a.tower || '').trim());
+  const axisPool =
+    s.matrixTowerFilter === 'all'
+      ? towerPool
+      : towerPool.filter((a) => (a.tower || '').trim() === s.matrixTowerFilter.trim());
+  const axisCounts = countBy(axisPool, (a) => (a.axisNumber || '').trim());
+  const typeCounts = countBy(axisPool, (a) => a.unitType);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs space-y-4 p-4">
@@ -52,10 +75,10 @@ export const MatrixView: React.FC<MatrixViewProps> = ({
             }}
             className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 font-medium"
           >
-            <option value="all">Tất cả dự án ({projects.length})</option>
+            <option value="all">Tất cả dự án ({projects.length} • {apartments.length} căn)</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {p.name} ({projectCounts.get(p.id) || 0})
               </option>
             ))}
           </select>
@@ -71,10 +94,10 @@ export const MatrixView: React.FC<MatrixViewProps> = ({
             }}
             className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 font-medium"
           >
-            <option value="all">Tất cả tòa tháp ({s.availableTowersForMatrix.length})</option>
+            <option value="all">Tất cả tòa tháp ({s.availableTowersForMatrix.length} • {towerPool.length} căn)</option>
             {s.availableTowersForMatrix.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {t} ({towerCounts.get(t.trim()) || 0})
               </option>
             ))}
           </select>
@@ -87,10 +110,10 @@ export const MatrixView: React.FC<MatrixViewProps> = ({
             onChange={(e) => s.setMatrixAxisFilter(e.target.value)}
             className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 font-medium"
           >
-            <option value="all">Tất cả trục ({s.availableAxesForMatrix.length})</option>
+            <option value="all">Tất cả trục ({s.availableAxesForMatrix.length} • {axisPool.length} căn)</option>
             {s.availableAxesForMatrix.map((ax) => (
               <option key={ax} value={ax}>
-                {ax}
+                {ax} ({axisCounts.get(ax.trim()) || 0})
               </option>
             ))}
           </select>
@@ -103,15 +126,15 @@ export const MatrixView: React.FC<MatrixViewProps> = ({
             onChange={(e) => s.setMatrixUnitTypeFilter(e.target.value as ApartmentUnitType | 'all')}
             className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 font-medium"
           >
-            <option value="all">Tất cả dạng căn</option>
-            <option value="studio">Studio</option>
-            <option value="1pn">1 Phòng Ngủ</option>
-            <option value="1pn_plus">1 Phòng Ngủ + 1</option>
-            <option value="2pn_1wc">2 Phòng Ngủ - 1WC</option>
-            <option value="2pn_2wc">2 Phòng Ngủ - 2WC</option>
-            <option value="3pn">3 Phòng Ngủ</option>
-            <option value="duplex">Duplex</option>
-            <option value="penthouse">Penthouse</option>
+            <option value="all">Tất cả dạng căn ({axisPool.length} căn)</option>
+            <option value="studio">Studio ({typeCounts.get('studio') || 0})</option>
+            <option value="1pn">1 Phòng Ngủ ({typeCounts.get('1pn') || 0})</option>
+            <option value="1pn_plus">1 Phòng Ngủ + 1 ({typeCounts.get('1pn_plus') || 0})</option>
+            <option value="2pn_1wc">2 Phòng Ngủ - 1WC ({typeCounts.get('2pn_1wc') || 0})</option>
+            <option value="2pn_2wc">2 Phòng Ngủ - 2WC ({typeCounts.get('2pn_2wc') || 0})</option>
+            <option value="3pn">3 Phòng Ngủ ({typeCounts.get('3pn') || 0})</option>
+            <option value="duplex">Duplex ({typeCounts.get('duplex') || 0})</option>
+            <option value="penthouse">Penthouse ({typeCounts.get('penthouse') || 0})</option>
           </select>
         </div>
       </div>
@@ -184,6 +207,9 @@ export const MatrixView: React.FC<MatrixViewProps> = ({
                   <td className="py-2.5 px-3 font-bold">{apt.netArea} m²</td>
                   <td className="py-2.5 px-3 text-slate-500">{apt.direction || '—'}</td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                    <span className="inline-flex mr-1 align-middle" title="Copy bài/link chia sẻ căn này">
+                      <ShareUnitButton apartment={apt} settings={settings} />
+                    </span>
                     <button
                       onClick={() => onOpenApartmentEditor(apt)}
                       className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold text-xs mr-1 cursor-pointer"

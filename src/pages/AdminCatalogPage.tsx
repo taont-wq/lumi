@@ -61,6 +61,7 @@ export const AdminCatalogPage: React.FC = () => {
         key={treeKey}
         projects={ctx.projects}
         apartments={ctx.apartments}
+        settings={ctx.settings}
         onSaveProjects={ctx.onSaveProjects}
         onSaveApartments={ctx.onSaveApartments}
         onOpenApartmentEditor={setEditingApartment}

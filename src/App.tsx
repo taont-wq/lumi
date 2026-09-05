@@ -36,7 +36,7 @@ import { ConsultationSection } from './components/ConsultationSection';
 import { Footer } from './components/Footer';
 import { StickyMobileCTA } from './components/StickyMobileCTA';
 import { Analytics } from './components/Analytics';
-import { SmartSearchBar } from './components/SmartSearchBar';
+import { SmartSearchModal } from './components/SmartSearchModal';
 
 import { RouteGuard } from './components/RouteGuard';
 import { AdminLoginPage } from './pages/AdminLoginPage';
@@ -421,6 +421,7 @@ interface HomePageProps {
 const HomePage: React.FC<HomePageProps> = ({
   settings,
   projects,
+  apartments,
   selectedProjectId,
   selectedTower,
   selectedAxis,
@@ -459,6 +460,7 @@ const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [isSmartSearchOpen, setIsSmartSearchOpen] = useState(false);
 
   // Check Supabase session on mount + subscribe to changes
   useEffect(() => {
@@ -510,13 +512,14 @@ const HomePage: React.FC<HomePageProps> = ({
           }
         }}
         onOpenConsultModal={onOpenConsultDirect}
+        onOpenSmartSearch={() => setIsSmartSearchOpen(true)}
       />
 
-      <SmartSearchBar onApply={onApplySmart} onClear={onClearSmart} />
       <div ref={searchSectionRef}>
         <HeroSearch
           settings={settings}
           projects={projects}
+          apartments={apartments}
           selectedProjectId={selectedProjectId}
           selectedTower={selectedTower}
           selectedAxis={selectedAxis}
@@ -644,6 +647,13 @@ const HomePage: React.FC<HomePageProps> = ({
           onOpenDownloadModal={onOpenDownloadModal}
         />
       )}
+
+      <SmartSearchModal
+        isOpen={isSmartSearchOpen}
+        onClose={() => setIsSmartSearchOpen(false)}
+        onApply={onApplySmart}
+        onClear={onClearSmart}
+      />
 
       {isLeadCaptureOpen && (
         <LeadCaptureModal

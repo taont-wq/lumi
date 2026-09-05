@@ -15,6 +15,7 @@
 
 import { ApartmentUnit, AppSettings, LeadRecord, Project } from '../types';
 import { supabase, isSupabaseEnabled, ApartmentRow, LeadRow, ProjectRow, SettingsRow } from '../lib/supabase';
+import { INITIAL_SETTINGS as SETTINGS_FALLBACK } from '../data/initialData';
 
 // =================================================================
 // IN-MEMORY CACHE (10 giây TTL) — tránh gọi DB liên tục
@@ -375,11 +376,10 @@ export async function getStoredSettings(): Promise<AppSettings | null> {
     console.error('[Supabase] getStoredSettings error:', error);
     return null;
   }
-  // Caller sẽ merge với INITIAL_SETTINGS fallback nếu cần
-  // Ở đây trả null để caller tự dùng fallback
-  // (vì SettingsRow có thể thiếu field → merge logic ở App.tsx)
-  cache.settings = { data: data as any, ts: Date.now() };
-  return data as any;
+  const mapped = settingsRowToObject(data as SettingsRow, SETTINGS_FALLBACK);
+  mapped.zaloNumber = (mapped.zaloNumber || '').replace(/\s+/g, '');
+  cache.settings = { data: mapped, ts: Date.now() };
+  return mapped;
 }
 
 export async function saveStoredSettings(settings: AppSettings): Promise<void> {

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Search, Building, Layers, Compass, LayoutGrid, RotateCcw, ArrowRight } from 'lucide-react';
-import { ApartmentUnitType, AppSettings, Project } from '../types';
+import { ApartmentUnit, ApartmentUnitType, AppSettings, Project } from '../types';
 
 interface HeroSearchProps {
   settings: AppSettings;
   projects: Project[];
+  apartments: ApartmentUnit[];
   selectedProjectId: string;
   selectedTower: string;
   selectedAxis: string;
@@ -36,6 +37,7 @@ export const UNIT_TYPES_LIST: { id: ApartmentUnitType | 'all'; name: string }[] 
 export const HeroSearch: React.FC<HeroSearchProps> = ({
   settings,
   projects,
+  apartments,
   selectedProjectId,
   selectedTower,
   selectedAxis,
@@ -53,6 +55,42 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
   totalResultsCount,
 }) => {
   const [localKeyword, setLocalKeyword] = useState(searchKeyword);
+
+  const countBy = (list: ApartmentUnit[], key: (a: ApartmentUnit) => string) => {
+    const m = new Map<string, number>();
+    list.forEach((a) => {
+      const k = key(a);
+      if (k) m.set(k, (m.get(k) || 0) + 1);
+    });
+    return m;
+  };
+  const projectCounts = useMemo(
+    () => countBy(apartments, (a) => a.projectId),
+    [apartments]
+  );
+  const towerPool = useMemo(
+    () =>
+      selectedProjectId === 'all'
+        ? apartments
+        : apartments.filter((a) => a.projectId === selectedProjectId),
+    [apartments, selectedProjectId]
+  );
+  const towerCounts = useMemo(
+    () => countBy(towerPool, (a) => (a.tower || '').trim()),
+    [towerPool]
+  );
+  const axisPool = useMemo(
+    () =>
+      selectedTower === 'all'
+        ? towerPool
+        : towerPool.filter((a) => (a.tower || '').trim() === selectedTower.trim()),
+    [towerPool, selectedTower]
+  );
+  const axisCounts = useMemo(
+    () => countBy(axisPool, (a) => (a.axisNumber || '').trim()),
+    [axisPool]
+  );
+  const typeCounts = useMemo(() => countBy(axisPool, (a) => a.unitType), [axisPool]);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,10 +133,10 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
                     onChange={(e) => onProjectChange(e.target.value)}
                     className="w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-slate-800 font-medium text-xs sm:text-sm rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 py-3 px-3 transition-all cursor-pointer appearance-none truncate pr-8"
                   >
-                    <option value="all">Tất cả dự án ({projects.length})</option>
+                    <option value="all">Tất cả dự án ({projects.length} dự án • {apartments.length} căn)</option>
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name}
+                        {p.name} ({projectCounts.get(p.id) || 0} căn)
                       </option>
                     ))}
                   </select>
@@ -127,7 +165,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
                     </option>
                     {availableTowers.map((tower) => (
                       <option key={tower} value={tower}>
-                        {tower}
+                        {tower} ({towerCounts.get(tower.trim()) || 0} căn)
                       </option>
                     ))}
                   </select>
@@ -149,10 +187,10 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
                     onChange={(e) => onAxisChange(e.target.value)}
                     className="w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-slate-800 font-medium text-xs sm:text-sm rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 py-3 px-3 transition-all cursor-pointer appearance-none truncate pr-8"
                   >
-                    <option value="all">Tất cả trục căn ({availableAxes.length})</option>
+                    <option value="all">Tất cả trục căn ({availableAxes.length} trục • {axisPool.length} căn)</option>
                     {availableAxes.map((axis) => (
                       <option key={axis} value={axis}>
-                        {axis}
+                        {axis} ({axisCounts.get(axis.trim()) || 0} căn)
                       </option>
                     ))}
                   </select>
@@ -176,7 +214,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
                   >
                     {UNIT_TYPES_LIST.map((u) => (
                       <option key={u.id} value={u.id}>
-                        {u.name}
+                        {u.name}{u.id !== 'all' ? ` (${typeCounts.get(u.id) || 0} căn)` : ` (${axisPool.length} căn)`}
                       </option>
                     ))}
                   </select>
