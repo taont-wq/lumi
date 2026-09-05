@@ -3,7 +3,7 @@
 -- ================================================================
 -- Mở Supabase Dashboard → SQL Editor → paste đoạn này → Run
 
--- 1. Tạo admin user với email admin@noithatlumi.vn, mật khẩu Admin@123
+-- 1. Tạo admin user (ON CONFLICT = cập nhật nếu đã tồn tại)
 -- LƯU Ý: Supabase mới dùng "app_metadata" thay vì "raw_app_metadata"
 INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, app_metadata, role, aud, created_at, updated_at)
 VALUES (
@@ -16,9 +16,14 @@ VALUES (
   'signup',
   NOW(),
   NOW()
-);
+)
+ON CONFLICT (email) DO UPDATE SET
+  encrypted_password = crypt('Admin@123', gen_salt('bf')),
+  app_metadata = '{"role": "admin"}'::jsonb,
+  email_confirmed_at = NOW(),
+  updated_at = NOW();
 
--- 2. Xác nhận user đã được tạo với role admin
+-- 2. Xác nhận user đã có role admin
 SELECT id, email, app_metadata, role, aud, email_confirmed_at
 FROM auth.users
 WHERE email = 'admin@noithatlumi.vn';
