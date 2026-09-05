@@ -97,7 +97,7 @@ export default function App() {
       setProjects(p);
       setApartments(a);
       setLeads(l);
-      setSettings(s);
+      if (s) setSettings(s);
     } catch (err) {
       console.error('Failed to load data from Supabase:', err);
     } finally {

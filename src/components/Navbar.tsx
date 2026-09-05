@@ -17,6 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleAdmin,
   onOpenConsultModal,
 }) => {
+  const s = settings || { hotline: '058 929 4444', hotline2: '083 555 7878', zaloNumber: '0589294444', zaloLink: 'https://zalo.me/0589294444' };
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
@@ -52,21 +53,21 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Hotline - ẩn text trên mobile, chỉ hiện icon */}
             <a
-              href={`tel:${settings.hotline.replace(/\s+/g, '')}`}
+              href={`tel:${s.hotline.replace(/\s+/g, '')}`}
               className="hidden sm:inline-flex items-center space-x-1.5 px-2.5 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-              title={settings.hotline2 ? `Hotline: ${settings.hotline} hoặc ${settings.hotline2}` : `Hotline: ${settings.hotline}`}
+              title={s.hotline2 ? `Hotline: ${s.hotline} hoặc ${s.hotline2}` : `Hotline: ${s.hotline}`}
             >
               <Phone className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-emerald-600 animate-pulse shrink-0" />
               <span className="hidden lg:inline whitespace-nowrap">
-                {settings.hotline}
-                {settings.hotline2 ? ` - ${settings.hotline2}` : ''}
+                {s.hotline}
+                {s.hotline2 ? ` - ${s.hotline2}` : ''}
               </span>
-              <span className="lg:hidden whitespace-nowrap">{settings.hotline}</span>
+              <span className="lg:hidden whitespace-nowrap">{s.hotline}</span>
             </a>
 
             {/* Zalo CTA */}
             <a
-              href={settings.zaloLink || `https://zalo.me/${settings.zaloNumber}`}
+              href={s.zaloLink || `https://zalo.me/${s.zaloNumber}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center space-x-1.5 px-2.5 lg:px-3.5 py-1.5 lg:py-2 text-xs lg:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-lg shadow-sm transition-all"
