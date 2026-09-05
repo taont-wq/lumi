@@ -25,7 +25,8 @@ function unauthorized() {
 }
 
 export default async function handler(req) {
-  const url = new URL(req.url);
+  const host = req.headers.get('host') || 'localhost';
+  const url = new URL(req.url, `https://${host}`);
   const expected = process.env.CRON_SECRET || '';
   const headerAuth = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   const querySecret = url.searchParams.get('secret') || '';
