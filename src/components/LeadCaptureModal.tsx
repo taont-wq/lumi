@@ -16,6 +16,7 @@ import confetti from 'canvas-confetti';
 import { ApartmentUnit, AppSettings } from '../types';
 import { submitLeadToGoogleForm } from '../services/googleFormLead';
 import { addLead } from '../services/supabaseStorage';
+import { getLeadSource } from '../lib/unitShare';
 
 interface LeadCaptureModalProps {
   isOpen: boolean;
@@ -111,6 +112,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         createdAt: formattedDate,
         status: 'new' as const,
         syncedToGoogleSheet: false,
+        source: getLeadSource() || undefined,
       };
       await addLead(newLead);
       await submitLeadToGoogleForm({

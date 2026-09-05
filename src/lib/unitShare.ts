@@ -9,14 +9,72 @@
 import { ApartmentUnit, AppSettings } from '../types';
 
 export const SHARE_PARAM = 'unit';
+export const REF_PARAM = 'ref';
+const REF_STORAGE_KEY = 'lumi-share-ref';
+const MAX_REF_LENGTH = 40;
 
-/** Link mở thẳng đúng căn: https://domain/?unit=S2.05-12A08 */
-export function buildUnitUrl(unitCode: string): string {
+export function buildUnitUrl(unitCode: string, ref?: string): string {
   const origin =
     typeof window !== 'undefined' && window.location?.origin
       ? window.location.origin
       : '';
-  return `${origin}/?${SHARE_PARAM}=${encodeURIComponent(unitCode)}`;
+  const cleanRef = sanitizeRef(ref || '');
+  const query = cleanRef
+    ? `?${SHARE_PARAM}=${encodeURIComponent(unitCode)}&${REF_PARAM}=${encodeURIComponent(cleanRef)}`
+    : `?${SHARE_PARAM}=${encodeURIComponent(unitCode)}`;
+  return `${origin}/${query}`;
+}
+
+export function sanitizeRef(input: string): string {
+  return (input || '')
+    .trim()
+    .replace(/[^\p{L}\p{N} _.-]/gu, '')
+    .slice(0, MAX_REF_LENGTH);
+}
+
+export function getSharedRef(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return sanitizeRef(new URLSearchParams(window.location.search).get(REF_PARAM) || '');
+  } catch {
+    return '';
+  }
+}
+
+export function getSavedRef(): string {
+  try {
+    return sanitizeRef(localStorage.getItem(REF_STORAGE_KEY) || '');
+  } catch {
+    return '';
+  }
+}
+
+export function saveRef(ref: string): void {
+  try {
+    localStorage.setItem(REF_STORAGE_KEY, sanitizeRef(ref));
+  } catch {
+    return;
+  }
+}
+
+const LEAD_SOURCE_KEY = 'lumi-lead-source';
+
+export function saveLeadSourceFromUrl(): void {
+  const ref = getSharedRef();
+  if (!ref) return;
+  try {
+    sessionStorage.setItem(LEAD_SOURCE_KEY, ref);
+  } catch {
+    return;
+  }
+}
+
+export function getLeadSource(): string {
+  try {
+    return sanitizeRef(sessionStorage.getItem(LEAD_SOURCE_KEY) || '');
+  } catch {
+    return '';
+  }
 }
 
 /** Đọc ?unit= trên URL hiện tại (nếu có). */
@@ -36,6 +94,7 @@ export function clearSharedUnitCode(): void {
   try {
     const url = new URL(window.location.href);
     url.searchParams.delete(SHARE_PARAM);
+    url.searchParams.delete(REF_PARAM);
     window.history.replaceState({}, '', url.pathname + url.search + url.hash);
   } catch {
     /* bỏ qua */

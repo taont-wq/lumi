@@ -223,6 +223,14 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, settings, onSaveLeads
                       <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-semibold inline-block">
                         {lead.actionName || lead.action}
                       </span>
+                      {lead.source && (
+                        <span
+                          className="ml-1 px-2 py-0.5 rounded-md bg-violet-50 text-violet-700 font-semibold inline-block"
+                          title="Kênh/sale giới thiệu khách này"
+                        >
+                          ← {lead.source}
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <select

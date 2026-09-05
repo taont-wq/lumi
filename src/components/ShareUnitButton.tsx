@@ -11,18 +11,22 @@ import {
   buildUnitPost,
   copyTextToClipboard,
   nativeShare,
+  getSavedRef,
+  saveRef,
 } from '../lib/unitShare';
 
 interface ShareUnitButtonProps {
   apartment: ApartmentUnit;
   settings: AppSettings;
+  compact?: boolean;
 }
 
 type DoneKind = 'post' | 'link' | 'share' | null;
 
-export const ShareUnitButton: React.FC<ShareUnitButtonProps> = ({ apartment, settings }) => {
+export const ShareUnitButton: React.FC<ShareUnitButtonProps> = ({ apartment, settings, compact }) => {
   const [done, setDone] = useState<DoneKind>(null);
   const [failed, setFailed] = useState(false);
+  const [refName, setRefName] = useState(getSavedRef);
   const canNativeShare =
     typeof navigator !== 'undefined' && 'share' in navigator;
 
@@ -32,22 +36,27 @@ export const ShareUnitButton: React.FC<ShareUnitButtonProps> = ({ apartment, set
     setTimeout(() => setDone(null), 2500);
   };
 
+  const handleRefChange = (value: string) => {
+    setRefName(value);
+    saveRef(value);
+  };
+
   const handleCopyPost = async () => {
-    const post = buildUnitPost(apartment, settings);
+    const post = buildUnitPost(apartment, settings, buildUnitUrl(apartment.unitCode, refName));
     const ok = await copyTextToClipboard(post);
     if (ok) flash('post');
     else setFailed(true);
   };
 
   const handleCopyLink = async () => {
-    const ok = await copyTextToClipboard(buildUnitUrl(apartment.unitCode));
+    const ok = await copyTextToClipboard(buildUnitUrl(apartment.unitCode, refName));
     if (ok) flash('link');
     else setFailed(true);
   };
 
   const handleNativeShare = async () => {
-    const url = buildUnitUrl(apartment.unitCode);
-    const post = buildUnitPost(apartment, settings);
+    const url = buildUnitUrl(apartment.unitCode, refName);
+    const post = buildUnitPost(apartment, settings, url);
     const ok = await nativeShare(
       `${apartment.unitTypeName} ${apartment.unitCode}`,
       post,
@@ -61,7 +70,18 @@ export const ShareUnitButton: React.FC<ShareUnitButtonProps> = ({ apartment, set
     'inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer';
 
   return (
-    <div className="flex items-center space-x-1.5">
+    <div className={compact ? 'flex items-center' : 'space-y-1.5'}>
+      {!compact && (
+        <input
+          type="text"
+          value={refName}
+          onChange={(e) => handleRefChange(e.target.value)}
+          placeholder="Tên bạn/kênh (gắn vào link)"
+          maxLength={40}
+          className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-200"
+        />
+      )}
+      <div className="flex items-center space-x-1.5">
       <button
         onClick={handleCopyPost}
         title="Copy bài viết đầy đủ thông tin để gửi Zalo/Facebook"
@@ -98,6 +118,7 @@ export const ShareUnitButton: React.FC<ShareUnitButtonProps> = ({ apartment, set
       {failed && (
         <span className="text-[11px] text-red-600 font-semibold">Copy thất bại, thử lại</span>
       )}
+      </div>
     </div>
   );
 };

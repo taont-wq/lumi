@@ -25,7 +25,7 @@ import {
 import { getCurrentSession, signOut, onAuthStateChange } from './lib/auth';
 import { INITIAL_SETTINGS as INITIAL_SETTINGS_FALLBACK } from './data/initialData';
 import { SmartFilters, matchSmartFilters } from './lib/vietnameseSearch';
-import { getSharedUnitCode, clearSharedUnitCode } from './lib/unitShare';
+import { getSharedUnitCode, clearSharedUnitCode, saveLeadSourceFromUrl } from './lib/unitShare';
 
 import { Navbar } from './components/Navbar';
 import { HeroSearch } from './components/HeroSearch';
@@ -252,6 +252,7 @@ export default function App() {
   useEffect(() => {
     if (deepLinkHandledRef.current || isInitialLoading || apartments.length === 0) return;
     deepLinkHandledRef.current = true;
+    saveLeadSourceFromUrl();
     const code = getSharedUnitCode();
     if (!code) return;
     const found = apartments.find(

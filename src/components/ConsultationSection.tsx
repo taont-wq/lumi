@@ -14,6 +14,7 @@ import {
 import { AppSettings } from '../types';
 import { submitLeadToGoogleForm } from '../services/googleFormLead';
 import { addLead } from '../services/supabaseStorage';
+import { getLeadSource } from '../lib/unitShare';
 import confetti from 'canvas-confetti';
 
 interface ConsultationSectionProps {
@@ -53,6 +54,7 @@ export const ConsultationSection: React.FC<ConsultationSectionProps> = ({
         createdAt: formattedDate,
         status: 'new' as const,
         syncedToGoogleSheet: false,
+        source: getLeadSource() || undefined,
       };
       await addLead(newLead);
       await submitLeadToGoogleForm({
