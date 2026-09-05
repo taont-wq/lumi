@@ -22,7 +22,7 @@ import {
   saveStoredLeads,
   saveStoredSettings,
 } from './services/supabaseStorage';
-import { getCurrentSession, signOut } from './lib/auth';
+import { getCurrentSession, signOut, onAuthStateChange } from './lib/auth';
 import { INITIAL_SETTINGS as INITIAL_SETTINGS_FALLBACK } from './data/initialData';
 
 import { Navbar } from './components/Navbar';
@@ -429,12 +429,21 @@ const HomePage: React.FC<HomePageProps> = ({
   const navigate = useNavigate();
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
 
-  // Check Supabase session on mount
+  // Check Supabase session on mount + subscribe to changes
   useEffect(() => {
-    getCurrentSession().then((session) => {
+    const checkSession = async () => {
+      const session = await getCurrentSession();
+      setIsAdminAuthenticated(!!session);
+    };
+    checkSession();
+
+    // Subscribe to auth state changes (login/logout)
+    const unsubscribe = onAuthStateChange((_event, session) => {
       setIsAdminAuthenticated(!!session);
     });
-  }, []);
+
+    return () => { unsubscribe(); };
+  }, [navigate]);
 
   // Keyboard shortcut: Ctrl+Shift+A → admin
   useEffect(() => {
