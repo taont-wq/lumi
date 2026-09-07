@@ -459,6 +459,27 @@ const HomePage: React.FC<HomePageProps> = ({
   const navigate = useNavigate();
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
   const [isSmartSearchOpen, setIsSmartSearchOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(12);
+
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [selectedProjectId, selectedTower, selectedAxis, selectedUnitType, searchKeyword, sortBy]);
+
+  const visibleApartments = sortedApartments.slice(0, visibleCount);
+  const remainingCount = sortedApartments.length - visibleApartments.length;
+
+  const handleResetWithCount = () => {
+    setVisibleCount(12);
+    onResetFilter();
+  };
+  const handleApplySmartWithCount = (f: SmartFilters) => {
+    setVisibleCount(12);
+    onApplySmart(f);
+  };
+  const handleClearSmartWithCount = () => {
+    setVisibleCount(12);
+    onClearSmart();
+  };
 
   // Link cũ ?unit=XXX → redirect sang URL SEO /can-ho/:slug
   useEffect(() => {
@@ -550,7 +571,7 @@ const HomePage: React.FC<HomePageProps> = ({
           onUnitTypeChange={onUnitTypeChange}
           onKeywordChange={onKeywordChange}
           onSearchSubmit={onSearchSubmit}
-          onResetFilter={onResetFilter}
+          onResetFilter={handleResetWithCount}
           totalResultsCount={sortedApartments.length}
         />
       </div>
@@ -592,8 +613,9 @@ const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         {sortedApartments.length > 0 ? (
+          <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {sortedApartments.map((apartment) => (
+            {visibleApartments.map((apartment) => (
               <ApartmentCard
                 key={apartment.id}
                 apartment={apartment}
@@ -603,6 +625,20 @@ const HomePage: React.FC<HomePageProps> = ({
               />
             ))}
           </div>
+          {remainingCount > 0 && (
+            <div className="text-center pt-2">
+              <p className="text-xs text-slate-500 mb-3">
+                Đang hiển thị {visibleApartments.length}/{sortedApartments.length} căn
+              </p>
+              <button
+                onClick={() => setVisibleCount((c) => c + 12)}
+                className="px-6 py-2.5 bg-white hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-300 text-sm font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                Xem Thêm {Math.min(remainingCount, 12)} Căn Nữa
+              </button>
+            </div>
+          )}
+          </>
         ) : (
           <div className="text-center py-16 px-4 bg-white rounded-3xl border border-slate-200 shadow-xs max-w-2xl mx-auto space-y-4">
             <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
@@ -616,7 +652,7 @@ const HomePage: React.FC<HomePageProps> = ({
             </p>
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
               <button
-                onClick={onResetFilter}
+                onClick={handleResetWithCount}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl cursor-pointer"
               >
                 Xóa Tất Cả Bộ Lọc
@@ -668,8 +704,8 @@ const HomePage: React.FC<HomePageProps> = ({
       <SmartSearchModal
         isOpen={isSmartSearchOpen}
         onClose={() => setIsSmartSearchOpen(false)}
-        onApply={onApplySmart}
-        onClear={onClearSmart}
+        onApply={handleApplySmartWithCount}
+        onClear={handleClearSmartWithCount}
       />
 
       {isLeadCaptureOpen && (
