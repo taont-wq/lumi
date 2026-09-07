@@ -208,7 +208,7 @@ export const MatrixView: React.FC<MatrixViewProps> = ({
                   <td className="py-2.5 px-3 text-slate-500">{apt.direction || '—'}</td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap">
                     <span className="inline-flex mr-1 align-middle" title="Copy bài/link chia sẻ căn này">
-                      <ShareUnitButton apartment={apt} settings={settings} />
+                      <ShareUnitButton apartment={apt} settings={settings} compact />
                     </span>
                     <button
                       onClick={() => onOpenApartmentEditor(apt)}

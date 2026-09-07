@@ -7,6 +7,7 @@
  */
 
 import { ApartmentUnit, AppSettings } from '../types';
+import { buildApartmentSeoAbsoluteUrl } from './apartmentSlug';
 
 export const SHARE_PARAM = 'unit';
 export const REF_PARAM = 'ref';
@@ -23,6 +24,12 @@ export function buildUnitUrl(unitCode: string, ref?: string): string {
     ? `?${SHARE_PARAM}=${encodeURIComponent(unitCode)}&${REF_PARAM}=${encodeURIComponent(cleanRef)}`
     : `?${SHARE_PARAM}=${encodeURIComponent(unitCode)}`;
   return `${origin}/${query}`;
+}
+
+export function buildUnitSeoUrl(apt: ApartmentUnit, ref?: string): string {
+  const base = buildApartmentSeoAbsoluteUrl(apt);
+  const cleanRef = sanitizeRef(ref || '');
+  return cleanRef ? `${base}?${REF_PARAM}=${encodeURIComponent(cleanRef)}` : base;
 }
 
 export function sanitizeRef(input: string): string {
@@ -117,7 +124,7 @@ export function buildUnitPost(
   settings: AppSettings,
   unitUrl?: string
 ): string {
-  const url = unitUrl || buildUnitUrl(apt.unitCode);
+  const url = unitUrl || buildUnitSeoUrl(apt);
   const brand = settings.brandName || 'Lumi Design';
   const hotline = [settings.hotline, settings.hotline2].filter(Boolean).join(' - ');
   const cost = shortCost(apt.estimatedCostRange?.basic);

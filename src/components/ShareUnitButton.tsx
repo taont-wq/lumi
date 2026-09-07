@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { Share2, Link2, FileText, Check } from 'lucide-react';
 import { ApartmentUnit, AppSettings } from '../types';
 import {
-  buildUnitUrl,
+  buildUnitSeoUrl,
   buildUnitPost,
   copyTextToClipboard,
   nativeShare,
@@ -42,20 +42,20 @@ export const ShareUnitButton: React.FC<ShareUnitButtonProps> = ({ apartment, set
   };
 
   const handleCopyPost = async () => {
-    const post = buildUnitPost(apartment, settings, buildUnitUrl(apartment.unitCode, refName));
+    const post = buildUnitPost(apartment, settings, buildUnitSeoUrl(apartment, refName));
     const ok = await copyTextToClipboard(post);
     if (ok) flash('post');
     else setFailed(true);
   };
 
   const handleCopyLink = async () => {
-    const ok = await copyTextToClipboard(buildUnitUrl(apartment.unitCode, refName));
+    const ok = await copyTextToClipboard(buildUnitSeoUrl(apartment, refName));
     if (ok) flash('link');
     else setFailed(true);
   };
 
   const handleNativeShare = async () => {
-    const url = buildUnitUrl(apartment.unitCode, refName);
+    const url = buildUnitSeoUrl(apartment, refName);
     const post = buildUnitPost(apartment, settings, url);
     const ok = await nativeShare(
       `${apartment.unitTypeName} ${apartment.unitCode}`,
