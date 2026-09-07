@@ -25,7 +25,8 @@ import {
 import { getCurrentSession, signOut, onAuthStateChange } from './lib/auth';
 import { INITIAL_SETTINGS as INITIAL_SETTINGS_FALLBACK } from './data/initialData';
 import { SmartFilters, matchSmartFilters } from './lib/vietnameseSearch';
-import { getSharedUnitCode, clearSharedUnitCode, saveLeadSourceFromUrl } from './lib/unitShare';
+import { saveLeadSourceFromUrl, getSharedUnitCode, clearSharedUnitCode, getSharedRef } from './lib/unitShare';
+import { buildApartmentSeoUrl } from './lib/apartmentSlug';
 
 import { Navbar } from './components/Navbar';
 import { HeroSearch } from './components/HeroSearch';
@@ -40,6 +41,7 @@ import { SmartSearchModal } from './components/SmartSearchModal';
 import { SeoJsonLd } from './components/SeoJsonLd';
 
 import { RouteGuard } from './components/RouteGuard';
+import { ApartmentDetailPage } from './pages/ApartmentDetailPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboardPage, AdminDashboardPageWithDialog } from './pages/AdminDashboardPage';
 import { AdminCatalogPage } from './pages/AdminCatalogPage';
@@ -254,15 +256,6 @@ export default function App() {
     if (deepLinkHandledRef.current || isInitialLoading || apartments.length === 0) return;
     deepLinkHandledRef.current = true;
     saveLeadSourceFromUrl();
-    const code = getSharedUnitCode();
-    if (!code) return;
-    const found = apartments.find(
-      (a) => a.unitCode.toLowerCase() === code.toLowerCase()
-    );
-    if (found) {
-      handleOpenDetailModal(found);
-      clearSharedUnitCode();
-    }
   }, [isInitialLoading, apartments]);
 
   // ===== Loading screen =====
@@ -339,6 +332,9 @@ export default function App() {
             />
           }
         />
+
+        {/* Trang chi tiết từng căn (SEO) */}
+        <Route path="/can-ho/:slug" element={<ApartmentDetailPage />} />
 
         {/* Admin login */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -463,6 +459,24 @@ const HomePage: React.FC<HomePageProps> = ({
   const navigate = useNavigate();
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
   const [isSmartSearchOpen, setIsSmartSearchOpen] = useState(false);
+
+  // Link cũ ?unit=XXX → redirect sang URL SEO /can-ho/:slug
+  useEffect(() => {
+    if (apartments.length === 0) return;
+    const code = getSharedUnitCode();
+    if (!code) return;
+    const found = apartments.find(
+      (a) => a.unitCode.toLowerCase() === code.toLowerCase()
+    );
+    if (found) {
+      const ref = getSharedRef();
+      clearSharedUnitCode();
+      navigate(
+        buildApartmentSeoUrl(found) + (ref ? `?ref=${encodeURIComponent(ref)}` : ''),
+        { replace: true }
+      );
+    }
+  }, [apartments, navigate]);
 
   // Check Supabase session on mount + subscribe to changes
   useEffect(() => {
