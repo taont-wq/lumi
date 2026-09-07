@@ -14,6 +14,7 @@ import { CheckCircle2, X } from 'lucide-react';
 import { CatalogTreeManager } from '../components/CatalogTreeManager';
 import { ApartmentEditorModal } from '../components/admin/ApartmentEditorModal';
 import { ProjectEditorModal } from '../components/admin/ProjectEditorModal';
+import { saveStoredApartment } from '../services/supabaseStorage';
 import { ApartmentUnit, AppSettings, LeadRecord, Project } from '../types';
 
 interface OutletCtx {
@@ -75,32 +76,28 @@ export const AdminCatalogPage: React.FC = () => {
           apartment={editingApartment}
           projects={ctx.projects}
           onClose={() => setEditingApartment(null)}
-          onSave={(apt) => {
+          onSave={async (apt) => {
             const exists = ctx.apartments.some((a) => a.id === apt.id);
+            try {
+              await saveStoredApartment(apt);
+            } catch (e) {
+              showToast(
+                `Lưu căn ${apt.unitCode} THẤT BẠI (${e instanceof Error ? e.message : String(e)}). Đã giữ nguyên form — kiểm tra mạng rồi bấm Lưu lại.`,
+                'error'
+              );
+              return;
+            }
             const updated = exists
               ? ctx.apartments.map((a) => (a.id === apt.id ? apt : a))
               : [apt, ...ctx.apartments];
-            const base64Bytes = [
-              apt.floorPlanImageUrl || '',
-              ...(apt.interiorImages || []).map((i) => i.url || ''),
-            ]
-              .filter((u) => u.startsWith('data:'))
-              .reduce((sum, u) => sum + u.length, 0);
             ctx.onSaveApartments(updated);
             setEditingApartment(null);
-            if (base64Bytes > 700_000) {
-              showToast(
-                `Căn ${apt.unitCode} đã gửi lưu nhưng ảnh còn ở dạng base64 (~${Math.round(base64Bytes / 1024)}KB) — dễ fail. Hãy tạo bucket Storage rồi upload lại ảnh.`,
-                'error'
-              );
-            } else {
-              showToast(
-                exists
-                  ? `Đã cập nhật căn ${apt.unitCode} thành công`
-                  : `Đã thêm căn mới "${apt.unitCode}" vào dự án ${apt.projectName}`,
-                'success'
-              );
-            }
+            showToast(
+              exists
+                ? `Đã cập nhật căn ${apt.unitCode} thành công`
+                : `Đã thêm căn mới "${apt.unitCode}" vào dự án ${apt.projectName}`,
+              'success'
+            );
             resetTreeView();
           }}
         />

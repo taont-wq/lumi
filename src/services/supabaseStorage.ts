@@ -254,8 +254,49 @@ export async function saveStoredApartments(apartments: ApartmentUnit[]): Promise
   invalidateCache('apartments');
 }
 
-export async function deleteApartment(aptId: string): Promise<void> {
+export async function saveStoredApartment(apartment: ApartmentUnit): Promise<void> {
   if (!isSupabaseEnabled() || !supabase) {
+    const { saveStoredApartments: localSave } = await import('./storageService');
+    const existing = await getStoredApartments();
+    const idx = existing.findIndex((a) => a.id === apartment.id);
+    const next = idx >= 0 ? existing.map((a) => (a.id === apartment.id ? apartment : a)) : [apartment, ...existing];
+    return localSave(next);
+  }
+  const a = apartment;
+  const row = {
+    id: a.id,
+    project_id: a.projectId,
+    project_name: a.projectName,
+    unit_code: a.unitCode,
+    axis_number: a.axisNumber || null,
+    unit_type: a.unitType,
+    unit_type_name: a.unitTypeName,
+    tower: a.tower,
+    floor_range: a.floorRange || null,
+    gross_area: a.grossArea,
+    net_area: a.netArea,
+    ceiling_height: a.ceilingHeight,
+    direction: a.direction,
+    floor_plan_image_url: a.floorPlanImageUrl || null,
+    floor_plan_pdf_url: a.floorPlanPdfUrl || null,
+    cad_download_url: a.cadDownloadUrl || null,
+    interior_catalogue_pdf_url: a.interiorCataloguePdfUrl || null,
+    description: a.description,
+    highlights: a.highlights || [],
+    room_dimensions: a.roomDimensions || [],
+    interior_images: a.interiorImages || [],
+    videos: a.videos || [],
+    estimated_cost_range: a.estimatedCostRange || null,
+  };
+  const { error } = await supabase.from('apartments').upsert(row);
+  if (error) {
+    console.error('[Supabase] saveStoredApartment error:', error);
+    throw error;
+  }
+  invalidateCache('apartments');
+}
+
+export async function deleteApartment(aptId: string): Promise<void> {  if (!isSupabaseEnabled() || !supabase) {
     const { saveStoredApartments } = await import('./storageService');
     const list = await getStoredApartments();
     return saveStoredApartments(list.filter((a) => a.id !== aptId));
