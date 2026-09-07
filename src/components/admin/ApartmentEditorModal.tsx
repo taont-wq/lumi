@@ -360,6 +360,38 @@ export const ApartmentEditorModal: React.FC<ApartmentEditorModalProps> = ({
                 storageFolder={`apt-${apartment.id}`}
               />
             </div>
+            <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Link PDF Mặt Bằng:</label>
+                <input
+                  type="url"
+                  value={formData.floorPlanPdfUrl || ''}
+                  onChange={(e) => setFormData({ ...formData, floorPlanPdfUrl: e.target.value })}
+                  placeholder="https://drive.../mat-bang.pdf"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Link File CAD:</label>
+                <input
+                  type="url"
+                  value={formData.cadDownloadUrl || ''}
+                  onChange={(e) => setFormData({ ...formData, cadDownloadUrl: e.target.value })}
+                  placeholder="https://drive.../ban-ve.dwg"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Link Catalogue Nội Thất:</label>
+                <input
+                  type="url"
+                  value={formData.interiorCataloguePdfUrl || ''}
+                  onChange={(e) => setFormData({ ...formData, interiorCataloguePdfUrl: e.target.value })}
+                  placeholder="https://drive.../catalogue.pdf"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Section: 3D Images */}

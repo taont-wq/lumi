@@ -147,8 +147,18 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
     }
   };
 
-  const handleDownloadDirect = () => {
-    // Generate a mock or real download of blueprint technical spec sheet
+  const getRealDownloadUrl = (): string | null => {
+    if (!apartment) return null;
+    if (actionType === 'download_blueprint') {
+      return apartment.floorPlanPdfUrl || apartment.cadDownloadUrl || null;
+    }
+    if (actionType === 'download_catalogue') {
+      return apartment.interiorCataloguePdfUrl || null;
+    }
+    return null;
+  };
+
+  const handleDownloadDirect = () => {    // Generate a mock or real download of blueprint technical spec sheet
     const content = `
 THÔNG TIN KỸ THUẬT MẶT BẰNG CĂN HỘ
 =====================================
@@ -350,12 +360,26 @@ Zalo KTS tư vấn: ${settings.zaloNumber}
               <p className="text-xs text-blue-700">
                 Nhấn vào nút bên dưới để tải trực tiếp file thông số kích thước & sơ đồ mặt bằng kỹ thuật:
               </p>
+              {(() => {
+                const realUrl = getRealDownloadUrl();
+                return realUrl ? (
+                  <a
+                    href={realUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm inline-flex items-center justify-center space-x-2 shadow-xs cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Tải File Bản Vẽ (PDF/CAD)</span>
+                  </a>
+                ) : null;
+              })()}
               <button
                 onClick={handleDownloadDirect}
-                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm inline-flex items-center justify-center space-x-2 shadow-xs cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 text-blue-700 border border-blue-300 font-bold text-sm inline-flex items-center justify-center space-x-2 shadow-xs cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>Tải Xuống File Kỹ Thuật (TXT/PDF)</span>
+                <span>Tải File Thông Số Kỹ Thuật (TXT)</span>
               </button>
             </div>
 

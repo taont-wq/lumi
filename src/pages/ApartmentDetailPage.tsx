@@ -153,6 +153,29 @@ export const ApartmentDetailPage: React.FC = () => {
           </section>
         )}
 
+        {(apt.floorPlanPdfUrl || apt.cadDownloadUrl || apt.interiorCataloguePdfUrl) && (
+          <section className="mt-8">
+            <h2 className="text-lg font-bold mb-3">Tài liệu tải về</h2>
+            <div className="flex flex-wrap gap-2">
+              {apt.floorPlanPdfUrl && (
+                <a href={apt.floorPlanPdfUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-white border border-slate-300 hover:border-blue-500 hover:text-blue-700 rounded-xl text-xs font-bold">
+                  PDF Mặt Bằng
+                </a>
+              )}
+              {apt.cadDownloadUrl && (
+                <a href={apt.cadDownloadUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-white border border-slate-300 hover:border-blue-500 hover:text-blue-700 rounded-xl text-xs font-bold">
+                  File CAD
+                </a>
+              )}
+              {apt.interiorCataloguePdfUrl && (
+                <a href={apt.interiorCataloguePdfUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-white border border-slate-300 hover:border-blue-500 hover:text-blue-700 rounded-xl text-xs font-bold">
+                  Catalogue Nội Thất
+                </a>
+              )}
+            </div>
+          </section>
+        )}
+
         {(apt.highlights?.length > 0) && (
           <section className="mt-8">
             <h2 className="text-lg font-bold mb-3">Điểm nổi bật</h2>
