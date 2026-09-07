@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { ApartmentUnit } from '../types';
+import { buildApartmentSeoUrl } from '../lib/apartmentSlug';
 
 interface SeoJsonLdProps {
   apartments: ApartmentUnit[];
@@ -24,7 +25,7 @@ export const SeoJsonLd: React.FC<SeoJsonLdProps> = ({ apartments }) => {
     itemListElement: apartments.slice(0, 100).map((apt, i) => ({
       '@type': 'ListItem',
       position: i + 1,
-      url: origin + '/?unit=' + encodeURIComponent(apt.unitCode),
+      url: origin + buildApartmentSeoUrl(apt),
       name: `${apt.unitTypeName} ${apt.unitCode} - ${apt.projectName}`,
     })),
   };
