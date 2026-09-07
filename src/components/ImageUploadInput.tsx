@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Upload, Image as ImageIcon, X, Check, Link2, Sparkles, RefreshCw, Eye } from 'lucide-react';
 import { processImageFileToDataUrl as uploadToService, isCloudinaryConfigured } from '../services/cloudinaryUpload';
+import { uploadFile, type StorageBucket } from '../services/supabaseStorageUpload';
+import { isSupabaseEnabled } from '../lib/supabase';
 
 interface ImageUploadInputProps {
   label?: string;
@@ -10,6 +12,9 @@ interface ImageUploadInputProps {
   helperText?: string;
   aspectRatio?: 'square' | 'video' | 'wide' | 'auto';
   className?: string;
+  /** Supabase Storage đích — nếu có, ưu tiên upload lên Storage để lấy URL https thay vì base64 phình DB. */
+  storageBucket?: StorageBucket;
+  storageFolder?: string;
 }
 
 // Re-export from Cloudinary service (Quick Win #2). Falls back to base64 if Cloudinary not configured.
@@ -49,7 +54,7 @@ function base64Fallback(
             width = maxWidth;
           } else {
             width = Math.round((width * maxHeight) / height);
-            width = maxWidth;
+            height = maxHeight;
           }
         }
         const canvas = document.createElement('canvas');
@@ -80,6 +85,8 @@ export const ImageUploadInput: React.FC<ImageUploadInputProps> = ({
   helperText,
   aspectRatio = 'auto',
   className = '',
+  storageBucket,
+  storageFolder,
 }) => {
   // Default mode: nếu value là URL → 'url', nếu là data URL → 'upload'
   const [mode, setMode] = useState<'upload' | 'url'>(() =>
@@ -115,6 +122,21 @@ export const ImageUploadInput: React.FC<ImageUploadInputProps> = ({
     setErrorMsg(null);
     setIsLoading(true);
     try {
+      if (storageBucket && storageFolder && isSupabaseEnabled()) {
+        try {
+          const publicUrl = await uploadFile(file, storageBucket, storageFolder);
+          onChange(publicUrl);
+          setMode('upload');
+          return;
+        } catch (storageErr) {
+          console.warn('[ImageUploadInput] Storage upload failed, fallback base64:', storageErr);
+          setErrorMsg(
+            'Kho ảnh chưa sẵn sàng (' +
+              (storageErr instanceof Error ? storageErr.message : String(storageErr)) +
+              '). Đã lưu tạm base64 — hãy báo KTS tạo bucket Storage.'
+          );
+        }
+      }
       const dataUrl = await processImageFileToDataUrl(file);
       onChange(dataUrl);
       setMode('upload');

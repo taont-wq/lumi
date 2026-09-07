@@ -80,15 +80,27 @@ export const AdminCatalogPage: React.FC = () => {
             const updated = exists
               ? ctx.apartments.map((a) => (a.id === apt.id ? apt : a))
               : [apt, ...ctx.apartments];
+            const base64Bytes = [
+              apt.floorPlanImageUrl || '',
+              ...(apt.interiorImages || []).map((i) => i.url || ''),
+            ]
+              .filter((u) => u.startsWith('data:'))
+              .reduce((sum, u) => sum + u.length, 0);
             ctx.onSaveApartments(updated);
             setEditingApartment(null);
-            showToast(
-              exists
-                ? `Đã cập nhật căn ${apt.unitCode} thành công`
-                : `Đã thêm căn mới "${apt.unitCode}" vào dự án ${apt.projectName}`,
-              'success'
-            );
-            // Reset selectedNode để căn mới hiện ngay trong bảng
+            if (base64Bytes > 700_000) {
+              showToast(
+                `Căn ${apt.unitCode} đã gửi lưu nhưng ảnh còn ở dạng base64 (~${Math.round(base64Bytes / 1024)}KB) — dễ fail. Hãy tạo bucket Storage rồi upload lại ảnh.`,
+                'error'
+              );
+            } else {
+              showToast(
+                exists
+                  ? `Đã cập nhật căn ${apt.unitCode} thành công`
+                  : `Đã thêm căn mới "${apt.unitCode}" vào dự án ${apt.projectName}`,
+                'success'
+              );
+            }
             resetTreeView();
           }}
         />

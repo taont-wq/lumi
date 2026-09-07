@@ -87,6 +87,8 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
               onChange={(val) => setFormData({ ...formData, bannerUrl: val })}
               placeholder="https://... hoặc tải ảnh từ máy tính"
               helperText="Tải file ảnh phối cảnh dự án từ máy tính hoặc dán link URL"
+              storageBucket="project-banners"
+              storageFolder={`proj-${project.id}`}
             />
           </div>
         </div>

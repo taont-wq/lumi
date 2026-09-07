@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { ApartmentUnit, ApartmentUnitType, InteriorImage, Project, VideoItem } from '../../types';
 import { ImageUploadInput, processImageFileToDataUrl } from '../ImageUploadInput';
+import { uploadApartmentImage } from '../../services/supabaseStorageUpload';
+import { isSupabaseEnabled } from '../../lib/supabase';
 import { parseVideoInfo } from '../../utils/videoUtils';
 
 interface ApartmentEditorModalProps {
@@ -42,7 +44,16 @@ export const ApartmentEditorModal: React.FC<ApartmentEditorModalProps> = ({
       const file = files[i];
       if (file.type.startsWith('image/')) {
         try {
-          const dataUrl = await processImageFileToDataUrl(file);
+          let url: string;
+          if (isSupabaseEnabled()) {
+            try {
+              url = await uploadApartmentImage(file, apartment.id);
+            } catch {
+              url = await processImageFileToDataUrl(file);
+            }
+          } else {
+            url = await processImageFileToDataUrl(file);
+          }
           const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
           newImages.push({
             id: 'img-' + Date.now() + '-' + i,
@@ -53,7 +64,7 @@ export const ApartmentEditorModal: React.FC<ApartmentEditorModalProps> = ({
               }`,
             style: 'modern',
             styleName: 'Hiện Đại',
-            url: dataUrl,
+            url,
             roomType: 'living',
             roomTypeName: 'Phòng Khách',
           });
@@ -345,6 +356,8 @@ export const ApartmentEditorModal: React.FC<ApartmentEditorModalProps> = ({
                 onChange={(val) => setFormData({ ...formData, floorPlanImageUrl: val })}
                 placeholder="https://... hoặc bấm tải ảnh sơ đồ mặt bằng từ máy tính"
                 helperText="Hỗ trợ tải trực tiếp từ máy tính (PNG, JPG, WEBP) hoặc dán link URL bản vẽ. Thông tin kích thước chi tiết được thể hiện trực quan trên ảnh."
+                storageBucket="apartment-images"
+                storageFolder={`apt-${apartment.id}`}
               />
             </div>
           </div>
@@ -464,6 +477,8 @@ export const ApartmentEditorModal: React.FC<ApartmentEditorModalProps> = ({
                     onChange={(newUrl) => handleUpdateImage(idx, 'url', newUrl)}
                     placeholder="https://... hoặc tải ảnh 3D từ máy tính"
                     helperText="Tải file 3D từ máy tính hoặc dán link URL"
+                    storageBucket="apartment-images"
+                    storageFolder={`apt-${apartment.id}`}
                   />
                 </div>
               ))}
