@@ -392,13 +392,6 @@ export const ApartmentDetailModal: React.FC<ApartmentDetailModalProps> = ({
                             {img.styleName || img.style}
                           </span>
                         </div>
-
-                        {/* Room Type Badge */}
-                        <div className="absolute bottom-2.5 left-2.5">
-                          <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-white/90 text-slate-800 backdrop-blur-xs shadow-xs">
-                            {img.roomTypeName || img.roomType}
-                          </span>
-                        </div>
                       </div>
 
                       <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
