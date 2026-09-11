@@ -309,6 +309,22 @@ export async function deleteApartment(aptId: string): Promise<void> {  if (!isSu
   invalidateCache('apartments');
 }
 
+export async function deleteApartmentsByIds(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  if (!isSupabaseEnabled() || !supabase) {
+    const { saveStoredApartments } = await import('./storageService');
+    const list = await getStoredApartments();
+    const idSet = new Set(ids);
+    return saveStoredApartments(list.filter((a) => !idSet.has(a.id)));
+  }
+  const { error } = await supabase.from('apartments').delete().in('id', ids);
+  if (error) {
+    console.error('[Supabase] deleteApartmentsByIds error:', error);
+    throw error;
+  }
+  invalidateCache('apartments');
+}
+
 // =================================================================
 // LEADS (CRUD chính: insert + select + update status)
 // =================================================================

@@ -15,6 +15,11 @@ import {
   ViewMode,
 } from './types';
 import { DialogApi } from '../admin/Modal';
+import {
+  deleteApartment,
+  deleteApartmentsByIds,
+  deleteProject,
+} from '../../services/supabaseStorage';
 
 export function useCatalogState(
   projects: Project[],
@@ -392,7 +397,10 @@ export function useCatalogState(
         `Bạn có chắc chắn muốn xóa căn hộ "${unitCode}" khỏi hệ thống? Hành động này không thể hoàn tác.`,
         { tone: 'warning', confirmText: 'Xóa căn hộ' }
       );
-      if (ok) {
+      if (!ok) return;
+      try {
+        // Xóa thật trong DB trước — upsert mảng lọc KHÔNG xóa được row
+        await deleteApartment(aptId);
         const updated = apartments.filter((a) => a.id !== aptId);
         onSaveApartments(updated);
         setSelectedUnitIds((prev) => {
@@ -404,6 +412,38 @@ export function useCatalogState(
           setSelectedNode({ type: 'root' });
         }
         showToast(`Đã xóa căn hộ "${unitCode}".`);
+      } catch (err) {
+        console.error('handleDeleteUnit failed:', err);
+        showToast(`Xóa căn hộ "${unitCode}" thất bại. Vui lòng thử lại.`, 'error');
+      }
+    },
+    [apartments, onSaveApartments, selectedNode, showToast, dlg]
+  );
+
+  // Xóa hàng loạt: 1 confirm duy nhất + 1 lệnh delete batch.
+  // (Không gọi handleDeleteUnit từng cái — tránh N dialog và stale-closure last-write-wins.)
+  const handleDeleteUnitsBulk = useCallback(
+    async (ids: string[]) => {
+      const targets = apartments.filter((a) => ids.includes(a.id));
+      if (targets.length === 0) return;
+      const ok = await dlg.confirm(
+        `Xóa ${targets.length} căn hộ`,
+        `Bạn có chắc chắn muốn xóa ${targets.length} căn hộ đã chọn? Hành động này không thể hoàn tác.`,
+        { tone: 'error', confirmText: `Xóa ${targets.length} căn` }
+      );
+      if (!ok) return;
+      try {
+        await deleteApartmentsByIds(targets.map((a) => a.id));
+        const idSet = new Set(targets.map((a) => a.id));
+        onSaveApartments(apartments.filter((a) => !idSet.has(a.id)));
+        setSelectedUnitIds(new Set());
+        if (selectedNode.type === 'unit' && idSet.has(selectedNode.apartmentId)) {
+          setSelectedNode({ type: 'root' });
+        }
+        showToast(`Đã xóa ${targets.length} căn hộ.`);
+      } catch (err) {
+        console.error('handleDeleteUnitsBulk failed:', err);
+        showToast(`Xóa hàng loạt thất bại. Vui lòng thử lại.`, 'error');
       }
     },
     [apartments, onSaveApartments, selectedNode, showToast, dlg]
@@ -422,11 +462,20 @@ export function useCatalogState(
         message,
         { tone: 'error', confirmText: 'Xóa dự án' }
       );
-      if (ok) {
+      if (!ok) return;
+      try {
+        // Xóa căn trước, xóa dự án sau (dù DB có ON DELETE CASCADE,
+        // vẫn xóa tường minh để đúng cả khi fallback localStorage)
+        const unitIds = apartments.filter((a) => a.projectId === proj.id).map((a) => a.id);
+        await deleteApartmentsByIds(unitIds);
+        await deleteProject(proj.id);
         onSaveProjects(projects.filter((p) => p.id !== proj.id));
         onSaveApartments(apartments.filter((a) => a.projectId !== proj.id));
         setSelectedNode({ type: 'root' });
         showToast(`Đã xóa dự án "${proj.name}".`);
+      } catch (err) {
+        console.error('handleDeleteProject failed:', err);
+        showToast(`Xóa dự án "${proj.name}" thất bại. Vui lòng thử lại.`, 'error');
       }
     },
     [apartments, onSaveApartments, onSaveProjects, projects, showToast, dlg]
@@ -445,7 +494,10 @@ export function useCatalogState(
         message,
         { tone: 'error', confirmText: 'Xóa tòa' }
       );
-      if (ok) {
+      if (!ok) return;
+      try {
+        const unitIds = towerApts.map((a) => a.id);
+        await deleteApartmentsByIds(unitIds);
         if (proj) {
           onSaveProjects(
             projects.map((p) =>
@@ -458,6 +510,9 @@ export function useCatalogState(
         );
         setSelectedNode({ type: 'project', projectId });
         showToast(`Đã xóa Tòa "${towerName}".`);
+      } catch (err) {
+        console.error('handleDeleteTower failed:', err);
+        showToast(`Xóa Tòa "${towerName}" thất bại. Vui lòng thử lại.`, 'error');
       }
     },
     [apartments, onSaveApartments, onSaveProjects, projects, showToast, dlg]
@@ -477,7 +532,9 @@ export function useCatalogState(
         message,
         { tone: 'warning', confirmText: 'Xóa trục' }
       );
-      if (ok) {
+      if (!ok) return;
+      try {
+        await deleteApartmentsByIds(axisApts.map((a) => a.id));
         onSaveApartments(
           apartments.filter(
             (a) => !(a.projectId === projectId && a.tower === towerName && a.axisNumber === axisNumber)
@@ -485,6 +542,9 @@ export function useCatalogState(
         );
         setSelectedNode({ type: 'tower', projectId, towerName });
         showToast(`Đã xóa trục "${axisNumber}".`);
+      } catch (err) {
+        console.error('handleDeleteAxis failed:', err);
+        showToast(`Xóa trục "${axisNumber}" thất bại. Vui lòng thử lại.`, 'error');
       }
     },
     [apartments, onSaveApartments, showToast, dlg]
@@ -698,6 +758,7 @@ export function useCatalogState(
     handleTriggerAddUnit,
     handleDuplicateUnit,
     handleDeleteUnit,
+    handleDeleteUnitsBulk,
     handleDeleteProject,
     handleDeleteTower,
     handleDeleteAxis,

@@ -44,11 +44,6 @@ export const TreeView: React.FC<TreeViewProps> = ({
   dialog,
 }) => {
   const s = state;
-  const dlg: DialogApi = dialog || {
-    alert: async (t, m) => { window.alert(m ? `${t}\n\n${m}` : t); },
-    confirm: async (t, m) => { return window.confirm(m ? `${t}\n\n${m}` : t); },
-    info: async () => {},
-  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
@@ -580,21 +575,8 @@ export const TreeView: React.FC<TreeViewProps> = ({
                   <span>Chuyển Dự Án / Tòa / Trục</span>
                 </button>
                 <button
-                  onClick={async () => {
-                    const count = s.selectedUnitIds.size;
-                    const ok = await dlg.confirm(
-                      `Xóa ${count} căn hộ`,
-                      `Bạn có chắc chắn muốn xóa ${count} căn hộ đã chọn? Hành động này không thể hoàn tác.`,
-                      { tone: 'error', confirmText: `Xóa ${count} căn` }
-                    );
-                    if (ok) {
-                      // handleDeleteUnit đã gọi onSaveApartments nội bộ
-                      const ids = Array.from(s.selectedUnitIds);
-                      ids.forEach((id) => {
-                        const apt = apartments.find((a) => a.id === id);
-                        if (apt) s.handleDeleteUnit(id, apt.unitCode);
-                      });
-                    }
+                  onClick={() => {
+                    s.handleDeleteUnitsBulk(Array.from(s.selectedUnitIds));
                   }}
                   className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold flex items-center space-x-1"
                 >
