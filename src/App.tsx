@@ -27,6 +27,7 @@ import { INITIAL_SETTINGS as INITIAL_SETTINGS_FALLBACK } from './data/initialDat
 import { SmartFilters, matchSmartFilters } from './lib/vietnameseSearch';
 import { saveLeadSourceFromUrl, getSharedUnitCode, clearSharedUnitCode, getSharedRef } from './lib/unitShare';
 import { buildApartmentSeoUrl } from './lib/apartmentSlug';
+import ImageContextMenuGuard from './components/ImageContextMenuGuard';
 
 import { Navbar } from './components/Navbar';
 import { HeroSearch } from './components/HeroSearch';
@@ -272,6 +273,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ImageContextMenuGuard />
       <Routes>
         {/* Trang chủ công khai */}
         <Route
