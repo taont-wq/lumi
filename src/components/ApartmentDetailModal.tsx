@@ -211,19 +211,24 @@ export const ApartmentDetailModal: React.FC<ApartmentDetailModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Floor Plan Image Box */}
-                  <div className="relative min-h-[360px] sm:min-h-[440px] bg-white rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center p-2 group shadow-2xs">
+                  {/* Floor Plan Image Box — zoom bằng kích thước thật + cuộn pan,
+                      KHÔNG dùng transform scale (scale chỉ kéo giãn bitmap đã render → mờ) */}
+                  <div className="relative min-h-[360px] sm:min-h-[440px] max-h-[520px] overflow-auto bg-white rounded-2xl border border-slate-200 p-2 group shadow-2xs">
                     <img
                       src={apartment.floorPlanImageUrl}
                       alt={`Mặt bằng ${apartment.unitCode}`}
-                      className="max-h-[460px] max-w-full object-contain transition-transform duration-200"
-                      style={{ transform: `scale(${zoomLevel})` }}
+                      className="mx-auto object-contain transition-all duration-200"
+                      style={
+                        zoomLevel <= 1
+                          ? { maxHeight: 460, maxWidth: '100%' }
+                          : { width: `${Math.round(zoomLevel * 100)}%`, maxWidth: 'none' }
+                      }
                       referrerPolicy="no-referrer"
                     />
                   </div>
 
                   <p className="text-[11px] text-slate-500 text-center italic">
-                    * Kích thước chi tiết từng không gian, tường ngăn và vị trí cột chịu lực đã thể hiện trực tiếp trên bản vẽ.
+                    * Bấm + để zoom theo độ phân giải gốc rồi kéo xem chi tiết — kích thước từng không gian thể hiện trực tiếp trên bản vẽ.
                   </p>
                 </div>
 
